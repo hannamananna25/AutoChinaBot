@@ -8,7 +8,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.enums import ChatMemberStatus
 from datetime import datetime
 import requests
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, SoupStrainer
 from dotenv import load_dotenv
 import os
 import re
