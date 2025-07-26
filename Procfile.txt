@@ -1,1 +1,1 @@
-worker: python bot.py
+web: chmod a+x build.sh && ./build.sh && python bot.py
