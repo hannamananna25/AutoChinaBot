@@ -9,12 +9,20 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
+# Сначала копируем только requirements.txt
 COPY requirements.txt .
 
+# Устанавливаем зависимости с явным указанием версий
 RUN pip install --upgrade pip && \
-    pip install --no-cache-dir "aiogram==3.1.1" "aiohttp==3.9.3" && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir \
+    "aiogram==3.1.1" \
+    "aiohttp==3.9.3" \
+    "beautifulsoup4==4.12.2" \
+    "requests==2.31.0" \
+    "python-dotenv==1.0.0" \
+    "html5lib==1.1"
 
+# Копируем остальные файлы
 COPY . .
 
 CMD ["python", "bot.py"]
