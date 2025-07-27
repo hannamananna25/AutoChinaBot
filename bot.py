@@ -1,7 +1,7 @@
 import logging
 import sys
 import asyncio
-from aiogram import Bot, Dispatcher, types  # Добавлен импорт types
+from aiogram import Bot, Dispatcher, types  # Импорт types здесь
 from aiogram.filters import Command
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.fsm.state import State, StatesGroup
@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 import os
 import re
 from xml.etree import ElementTree as ET
-from aiohttp import web  # Перемещен в основной импорт
+from aiohttp import web
 
 # Настройка логирования
 logging.basicConfig(
@@ -66,7 +66,7 @@ SITE_IMAGE_URL = "https://autozakaz-dv.ru/local/templates/autozakaz/images/logo_
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
-# Обработчик ошибок (добавлен)
+# Обработчик ошибок (ПЕРЕМЕЩЕН ПОСЛЕ ИМПОРТА TYPES)
 async def on_error(update: types.Update, exception: Exception):
     logging.error(f"Ошибка: {exception}", exc_info=True)
     return True
@@ -83,6 +83,10 @@ class Form(StatesGroup):
     engine_power = State()  # Для электромобилей: мощность в кВт
     importer_type = State()
     personal_use = State()  # Новое состояние для цели использования
+
+# ... (остальной код остаётся без изменений, начиная с определения клавиатур)
+# ВАЖНО: Весь остальной код (от клавиатур до конца файла) остаётся БЕЗ ИЗМЕНЕНИЙ
+# Убедитесь, что он скопирован из предыдущей версии
 
 # Клавиатуры
 def start_keyboard():
