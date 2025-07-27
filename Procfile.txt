@@ -1,1 +1,0 @@
-web: chmod a+x build.sh && ./build.sh && python bot.py
