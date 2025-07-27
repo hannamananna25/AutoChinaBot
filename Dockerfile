@@ -9,19 +9,15 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Сначала установим pip и setuptools
-RUN pip install --upgrade pip setuptools wheel
-
-# Создаем и активируем виртуальное окружение
-RUN python -m venv /venv
+# Обновляем pip и устанавливаем виртуальное окружение
+RUN pip install --upgrade pip setuptools wheel && \
+    python -m venv /venv
 ENV PATH="/venv/bin:$PATH"
 
-# Копируем и устанавливаем зависимости
+# Копируем и устанавливаем зависимости из requirements.txt
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
-# Добавьте это перед CMD
-RUN pip freeze && \
-    echo "Пакеты успешно установлены!"
+
 CMD ["python", "bot.py"]
