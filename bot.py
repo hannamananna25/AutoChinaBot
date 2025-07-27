@@ -1,6 +1,7 @@
 import logging
 import sys
 import asyncio
+import threading
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton
@@ -8,13 +9,14 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 from aiogram.enums import ChatMemberStatus
 from datetime import datetime
-import requests
+import aiohttp  # Заменяем requests на асинхронный aiohttp
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 import os
 import re
 from xml.etree import ElementTree as ET
 from aiohttp import web
+from aiogram.fsm.storage.memory import MemoryStorage
 
 # Настройка логирования
 logging.basicConfig(
@@ -62,9 +64,10 @@ EXCISE_RATES_ELECTRIC = {
 
 SITE_IMAGE_URL = "https://autozakaz-dv.ru/local/templates/autozakaz/images/logo_header.png"
 
-# Инициализация бота
+# Инициализация бота с хранилищем состояний
+storage = MemoryStorage()
 bot = Bot(token=TOKEN)
-dp = Dispatcher()
+dp = Dispatcher(storage=storage)
 
 # Состояния бота
 class Form(StatesGroup):
@@ -142,25 +145,26 @@ async def is_subscribed(user_id: int) -> bool:
         logger.error(f"Ошибка проверки подписки: {e}", exc_info=True)
         return False
 
-# Получение курсов валют
-def get_currency_rates():
+# Получение курсов валют (асинхронная версия)
+async def get_currency_rates():
     try:
         url = 'https://www.cbr.ru/scripts/XML_daily.asp'
         today = datetime.now().strftime("%d/%m/%Y")
         params = {'date_req': today}
         
-        response = requests.get(url, params=params, timeout=15)
-        response.raise_for_status()
-        
-        root = ET.fromstring(response.content)
-        rates = {}
-        
-        for valute in root.findall('Valute'):
-            char_code = valute.find('CharCode').text
-            if char_code in ['USD', 'EUR', 'CNY']:
-                nominal = int(valute.find('Nominal').text)
-                value = float(valute.find('Value').text.replace(',', '.'))
-                rates[char_code] = value / nominal
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, params=params, timeout=15) as response:
+                response.raise_for_status()
+                content = await response.text()
+                root = ET.fromstring(content)
+                rates = {}
+                
+                for valute in root.findall('Valute'):
+                    char_code = valute.find('CharCode').text
+                    if char_code in ['USD', 'EUR', 'CNY']:
+                        nominal = int(valute.find('Nominal').text)
+                        value = float(valute.find('Value').text.replace(',', '.'))
+                        rates[char_code] = value / nominal
         
         default_rates = {'USD': 80.0, 'EUR': 90.0, 'CNY': 11.0}
         for currency in ['USD', 'EUR', 'CNY']:
@@ -575,7 +579,7 @@ async def personal_use_handler(message: types.Message, state: FSMContext):
 async def calculate_and_send_result(message: types.Message, state: FSMContext, data: dict, is_individual: bool, is_personal_use: bool):
     try:
         # Выполняем расчет стоимости
-        rates = get_currency_rates()
+        rates = await get_currency_rates()  # Асинхронный вызов
         price_rub = data['price'] * rates['CNY']
         eur_rate = rates['EUR']
         
@@ -631,7 +635,7 @@ async def calculate_and_send_result(message: types.Message, state: FSMContext, d
         
         if data['engine_type'] in ["🛢️ Бензиновый", "⛽ Дизельный"]:
             result += f"🔧 <b>Объем двигателя:</b> {format_engine_volume(engine_volume_cc)}\n"
-            result += f"⚡ <b>Мощность двигателя:</b> {int(round(data.get('engine_power', 0)))} л.с.\n"
+            result += f"⚡ <b>Мощность двигателя:</b> {int(round(data.get('engine_power', 0))} л.с.\n"
         else:
             result += f"⚡ <b>Мощность двигателя:</b> {data.get('engine_power', 0)} кВт ({engine_power_hp:.1f} л.с.)\n"
         
@@ -698,7 +702,7 @@ async def show_rates_handler(message: types.Message):
             )
             return
         
-        rates = get_currency_rates()
+        rates = await get_currency_rates()  # Асинхронный вызов
         await message.answer(
             f"📊 <b>Текущие курсы ЦБ РФ</b>:\n\n"
             f"🇺🇸 USD: {rates['USD']:.2f} руб.\n"
@@ -784,16 +788,54 @@ async def start_webapp():
     await site.start()
     logger.info("HTTP server started on port 8000")
 
-# Запуск приложения
+# Функция для периодической очистки устаревших состояний
+async def cleanup_storage():
+    while True:
+        await asyncio.sleep(3600)  # Каждый час
+        logger.info("Cleaning up expired states...")
+        now = datetime.now()
+        expired_keys = []
+        for key, data in storage.data.items():
+            state_time = data['state_timestamp']
+            if (now - state_time).total_seconds() > 7200:  # 2 часа
+                expired_keys.append(key)
+        
+        for key in expired_keys:
+            del storage.data[key]
+        logger.info(f"Cleaned up {len(expired_keys)} expired states")
+
+# Запуск приложения с автоматическим перезапуском
+async def run_bot():
+    while True:
+        try:
+            logger.info("Starting bot polling...")
+            await dp.start_polling(bot)
+        except Exception as e:
+            logger.error(f"Bot crashed: {e}", exc_info=True)
+            logger.info("Restarting bot in 5 seconds...")
+            await asyncio.sleep(5)
+
+# Запуск веб-сервера в отдельном потоке
+def run_webapp_thread():
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(start_webapp())
+    loop.run_forever()
+
+# Основная функция
 async def main():
     # Регистрация обработчика ошибок
     dp.errors.register(global_error_handler)
     
-    # Запуск HTTP сервера
-    asyncio.create_task(start_webapp())
+    # Запуск периодической очистки состояний
+    asyncio.create_task(cleanup_storage())
     
-    # Запуск бота
-    await dp.start_polling(bot)
+    # Запуск HTTP сервера в отдельном потоке
+    web_thread = threading.Thread(target=run_webapp_thread, daemon=True)
+    web_thread.start()
+    
+    # Запуск бота с автоматическим перезапуском
+    await run_bot()
 
 if __name__ == "__main__":
     logger.info("Starting bot...")
