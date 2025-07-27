@@ -9,13 +9,12 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Копируем сначала только requirements и constraints
-COPY requirements.txt constraints.txt ./
+COPY requirements.txt .
 
 RUN pip install --upgrade pip && \
-    pip install --no-cache-dir -c constraints.txt -r requirements.txt
+    pip install --no-cache-dir "aiogram==3.1.1" "aiohttp==3.9.3" && \
+    pip install --no-cache-dir -r requirements.txt
 
-# Копируем остальные файлы
 COPY . .
 
 CMD ["python", "bot.py"]
