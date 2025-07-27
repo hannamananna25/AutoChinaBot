@@ -9,8 +9,10 @@ from aiogram.fsm.context import FSMContext
 from aiogram.enums import ChatMemberStatus
 from datetime import datetime
 import requests
+from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 import os
+import re
 from xml.etree import ElementTree as ET
 from aiohttp import web
 
@@ -41,21 +43,21 @@ BASE_EXCISE_RATE = 61
 CHANNEL_ID = -1002265390233
 
 # Константы для электромобилей
-ELECTRIC_DUTY_RATE = 0.15
+ELECTRIC_DUTY_RATE = 0.15  # Всегда 15% для электромобилей
 BASE_RECYCLING_FEE_ELECTRIC_INDIVIDUAL_NEW = 3400
 BASE_RECYCLING_FEE_ELECTRIC_INDIVIDUAL_OLD = 5200
 BASE_RECYCLING_FEE_ELECTRIC_LEGAL_NEW = 667400
 BASE_RECYCLING_FEE_ELECTRIC_LEGAL_OLD = 1174000
 
-# Актуальные ставки акциза для электромобилей (руб/л.с.)
-EXCISE_RATES_ELECTRIC_HP = {
-    (0, 90): 0,
-    (90, 150): 58,
-    (150, 200): 557,
-    (200, 300): 912,
-    (300, 400): 1555,
-    (400, 500): 1609,
-    (500, float('inf')): 1662
+# Актуальные ставки акциза для электромобилей (руб/л.с.) на 2025 год
+EXCISE_RATES_ELECTRIC = {
+    (0, 90): 0,          # до 90 л.с. - нулевой акциз
+    (90, 150): 58,       # 90-150 л.с.
+    (150, 200): 557,     # 150-200 л.с.
+    (200, 300): 912,     # 200-300 л.с.
+    (300, 400): 1555,    # 300-400 л.с.
+    (400, 500): 1609,    # 400-500 л.с.
+    (500, float('inf')): 1662  # свыше 500 л.с.
 }
 
 SITE_IMAGE_URL = "https://autozakaz-dv.ru/local/templates/autozakaz/images/logo_header.png"
@@ -186,22 +188,16 @@ def format_engine_volume(volume_cc):
     return f"{volume_cc} см³ ({liters:.1f} л)" if liters != int(liters) else f"{volume_cc} см³ ({int(liters)} л)"
 
 def format_number(value):
-    try:
-        # Обработка как целых, так и дробных чисел
-        num = int(round(float(value)))
-        return "{0:,}".format(num).replace(",", ".")
-    except (ValueError, TypeError):
-        return str(value)
+    return "{0:,}".format(int(value)).replace(",", ".")
 
-# Расчет пошлины (исправлено по данным tks.ru)
+# Расчет пошлины (исправлено для электромобилей)
 def calculate_duty(price_rub: float, age_months: int, engine_volume_cc: int, 
                   is_individual: bool, eur_rate: float, is_electric: bool,
                   is_personal_use: bool) -> float:
     
+    # Для электромобилей всегда 15% пошлина
     if is_electric:
-        if is_individual and is_personal_use:
-            return 0  # Для физлиц личное пользование - 0%
-        return price_rub * ELECTRIC_DUTY_RATE  # Для остальных - 15%
+        return price_rub * ELECTRIC_DUTY_RATE
     
     if not is_individual or not is_personal_use:
         return price_rub * 0.20
@@ -229,7 +225,7 @@ def calculate_duty(price_rub: float, age_months: int, engine_volume_cc: int,
             min_rate_eur = 20
             
         duty_by_percent = price_rub * rate_percent
-        duty_by_volume = min_rate_eur * eur_rate * (engine_volume_cc / 1000)  # Правильный расчет в литрах
+        duty_by_volume = min_rate_eur * eur_rate * engine_volume_cc
         return max(duty_by_percent, duty_by_volume)
         
     elif 36 < age_months <= 60:
@@ -245,7 +241,7 @@ def calculate_duty(price_rub: float, age_months: int, engine_volume_cc: int,
             eur_per_cc = 3.0
         else:
             eur_per_cc = 3.6
-        return eur_per_cc * (engine_volume_cc / 1000) * eur_rate
+        return eur_per_cc * engine_volume_cc * eur_rate
         
     else:
         if engine_volume_cc <= 1000:
@@ -260,7 +256,7 @@ def calculate_duty(price_rub: float, age_months: int, engine_volume_cc: int,
             eur_per_cc = 5.0
         else:
             eur_per_cc = 5.7
-        return eur_per_cc * (engine_volume_cc / 1000) * eur_rate
+        return eur_per_cc * engine_volume_cc * eur_rate
 
 # Расчет утильсбора
 def calculate_recycling(age_months: int, engine_volume_cc: int, is_individual: bool, 
@@ -293,21 +289,14 @@ def calculate_recycling(age_months: int, engine_volume_cc: int, is_individual: b
     return BASE_RECYCLING_FEE_LEGAL * coefficient
 
 def calculate_excise(engine_power_hp: int) -> float:
-    return float(engine_power_hp) * BASE_EXCISE_RATE
+    return engine_power_hp * BASE_EXCISE_RATE
 
-def calculate_excise_electric(power_kw: float) -> float:
-    """Расчет акциза для электромобилей по мощности в кВт с конвертацией в л.с."""
-    try:
-        power_hp = float(power_kw) * 1.35962  # Конвертация кВт в л.с.
-        
-        # Ищем подходящий диапазон мощности
-        for (min_power, max_power), rate in EXCISE_RATES_ELECTRIC_HP.items():
-            if min_power < power_hp <= max_power:
-                return power_hp * rate
-        return 0
-    except Exception as e:
-        logger.error(f"Ошибка расчета акциза для электромобиля: {power_kw} кВт", exc_info=True)
-        return 0
+def calculate_excise_electric(power_hp: float) -> float:
+    """Расчет акциза для электромобилей по мощности в л.с."""
+    for (min_power, max_power), rate in EXCISE_RATES_ELECTRIC.items():
+        if min_power < power_hp <= max_power:
+            return power_hp * rate
+    return 0
 
 # Обработчики сообщений
 @dp.message(Command("start"))
@@ -428,20 +417,14 @@ async def year_month_handler(message: types.Message, state: FSMContext):
             )
             return
         
-        # Исправлено: используем int вместо float
-        parts = message.text.split('.')
-        if len(parts) != 2:
-            raise ValueError("Неверный формат даты")
-            
-        year = int(parts[0])
-        month = int(parts[1])
+        year, month = map(float, message.text.split('.'))
         current_date = datetime.now()
         
         if not (1990 <= year <= current_date.year) or not (1 <= month <= 12):
             await message.answer("❌ Ошибка! Некорректная дата выпуска.")
             return
             
-        manufacture_date = datetime(year, month, 1)
+        manufacture_date = datetime(int(year), int(month), 1)
         age_months = (current_date.year - manufacture_date.year) * 12 + (current_date.month - manufacture_date.month)
         
         await state.update_data(year_month=(year, month), age_months=age_months)
@@ -517,7 +500,7 @@ async def engine_power_handler(message: types.Message, state: FSMContext):
             )
             return
         
-        # Принимаем как float для поддержки дробных значений
+        # Принимаем float для поддержки дробных значений мощности
         power = float(message.text)
         if power <= 0: 
             await message.answer("❌ Ошибка! Мощность должна быть положительным числом.")
@@ -601,18 +584,18 @@ async def calculate_and_send_result(message: types.Message, state: FSMContext, d
         # Для электромобилей - конвертация кВт в л.с.
         if is_electric:
             power_kw = data.get('engine_power', 0)
-            engine_power_hp = float(power_kw) * 1.35962
-            excise = calculate_excise_electric(power_kw)
+            engine_power_hp = power_kw * 1.35962
+            excise = calculate_excise_electric(engine_power_hp)
             
             # Определяем ставку акциза для вывода
             current_rate = 0
-            for (min_power, max_power), rate in EXCISE_RATES_ELECTRIC_HP.items():
+            for (min_power, max_power), rate in EXCISE_RATES_ELECTRIC.items():
                 if min_power < engine_power_hp <= max_power:
                     current_rate = rate
                     break
         else:
             # Для ДВС - мощность в л.с.
-            engine_power_hp = float(data.get('engine_power', 0))
+            engine_power_hp = data.get('engine_power', 0)
             excise = calculate_excise(engine_power_hp) if not is_individual else 0
             current_rate = BASE_EXCISE_RATE
         
@@ -640,7 +623,7 @@ async def calculate_and_send_result(message: types.Message, state: FSMContext, d
             f"📊 <b>Результат расчета</b> (актуально на {datetime.now().strftime('%d.%m.%Y')}):\n\n"
             f"💰 <b>Стоимость авто:</b> {format_number(data['price'])} CNY ({format_number(price_rub)} руб.)\n"
             f"📈 <b>Курсы:</b> CNY: {rates['CNY']:.2f} руб., EUR: {rates['EUR']:.2f} руб.\n"
-            f"⏳ <b>Дата выпуска:</b> {data['year_month'][0]}.{data['year_month'][1]} ({age_str})\n"
+            f"⏳ <b>Дата выпуска:</b> {data['year_month'][0]:.0f}.{data['year_month'][1]:.0f} ({age_str})\n"
             f"🔋 <b>Тип двигателя:</b> {data['engine_type']}\n"
         )
         
@@ -675,23 +658,20 @@ async def calculate_and_send_result(message: types.Message, state: FSMContext, d
             f"<a href='{GUAZI_URL}'>🔍 Поиск авто на Guazi.com</a>"
         )
         
-        if is_electric and is_individual and is_personal_use:
-            result += "\n\nℹ️ <i>Для электромобилей физлиц: льготный утильсбор применяется при условиях: "
-            result += "1 авто в год, без продажи в течение 12 месяцев</i>"
-        elif is_electric:
-            result += "\n\nℹ️ <i>Для электромобилей: акциз применяется при мощности >90 л.с., НДС 20% обязателен для всех</i>"
+        # Обновленное примечание для электромобилей
+        if is_electric:
+            result += "\n\nℹ️ <i>Для электромобилей: пошлина 15%, акциз по мощности, НДС 20%</i>"
+            if engine_power_hp <= 90:
+                result += " (акциз 0% для мощности до 90 л.с.)"
         elif not is_individual:
             result += "\n\nℹ️ <i>Для ДВС юридических лиц: учтены пошлина, акциз, НДС и утильсбор</i>"
         
-        # Логируем длину сообщения для отладки
-        logger.info(f"Длина сообщения: {len(result)} символов")
-        
+        # Разделяем сообщение если слишком длинное
         if len(result) > 4096:
-            # Разбиваем сообщение на части если превышен лимит
             part1 = result[:4000]
             part2 = result[4000:]
-            await message.answer(part1, parse_mode="HTML", reply_markup=main_menu())
-            await message.answer(part2, parse_mode="HTML")
+            await message.answer(part1, parse_mode="HTML")
+            await message.answer(part2, parse_mode="HTML", reply_markup=main_menu())
         else:
             await message.answer(result, parse_mode="HTML", reply_markup=main_menu())
         
@@ -702,18 +682,16 @@ async def calculate_and_send_result(message: types.Message, state: FSMContext, d
             "Главная"
         )
         
-        # Временно отключим отправку фото для стабильности
-        # await message.answer_photo(
-        #    photo=SITE_IMAGE_URL,
-        #    caption=site_info,
-        #    parse_mode="HTML"
-        # )
+        await message.answer_photo(
+            photo=SITE_IMAGE_URL,
+            caption=site_info,
+            parse_mode="HTML"
+        )
         
         await state.clear()
     except Exception as e:
         logger.error(f"Ошибка в calculate_and_send_result: {e}", exc_info=True)
         logger.error(f"Данные расчета: {data}")
-        logger.error(f"Тип импортера: {is_individual}, Цель: {is_personal_use}")
         await message.answer("⚠️ Произошла ошибка при расчете стоимости. Пожалуйста, попробуйте еще раз.")
         await state.clear()
 
