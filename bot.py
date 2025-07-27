@@ -669,36 +669,13 @@ async def calculate_and_send_result(message: types.Message, state: FSMContext, d
             result += "\n\nℹ️ <i>Для ДВС юридических лиц: учтены пошлина, акциз, НДС и утильсбор</i>"
         
         # Отправляем текстовый результат
-        try:
-            if len(result) > 4096:
-                parts = [result[i:i+4096] for i in range(0, len(result), 4096)]
-                for part in parts:
-                    await message.answer(part, parse_mode="HTML")
-                await message.answer("Выберите действие:", reply_markup=main_menu())
-            else:
-                await message.answer(result, parse_mode="HTML", reply_markup=main_menu())
-        except Exception as text_error:
-            logger.error(f"Ошибка при отправке текста: {text_error}", exc_info=True)
-            # Не прерываем выполнение, просто логируем
-        
-        # Отправляем фото (не критично, если не получится)
-        try:
-            site_info = (
-                "С уважением, Авто Заказ ДВ\n\n"
-                f"<a href='{TELEGRAM_URL}'>- Заказать авто</a>\n"
-                f"<a href='{SITE_URL}'>autozakaz-dv.ru</a>\n"
-                "Главная"
-            )
-            
-            await message.answer_photo(
-                photo=SITE_IMAGE_URL,
-                caption=site_info,
-                parse_mode="HTML"
-            )
-        except Exception as photo_error:
-            logger.error(f"Ошибка при отправке фото: {photo_error}", exc_info=True)
-            # В случае ошибки отправляем текстовую версию
-            await message.answer(site_info, parse_mode="HTML")
+        if len(result) > 4096:
+            parts = [result[i:i+4096] for i in range(0, len(result), 4096)]
+            for part in parts:
+                await message.answer(part, parse_mode="HTML")
+            await message.answer("Выберите действие:", reply_markup=main_menu())
+        else:
+            await message.answer(result, parse_mode="HTML", reply_markup=main_menu())
         
         # Очищаем состояние
         await state.clear()
