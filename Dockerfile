@@ -9,9 +9,18 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-COPY . .
+COPY requirements.txt .
 
+# Установка пакетов с явным указанием версий
 RUN pip install --upgrade pip && \
-    pip install --no-cache-dir -c constraints.txt -r requirements.txt
+    pip install --no-cache-dir \
+    "aiogram==3.1.1" \
+    "aiohttp==3.9.3" \
+    "beautifulsoup4==4.12.2" \
+    "requests==2.31.0" \
+    "python-dotenv==1.0.0" \
+    "html5lib==1.1"
+
+COPY . .
 
 CMD ["python", "bot.py"]
