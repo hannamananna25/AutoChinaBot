@@ -2,6 +2,7 @@ import logging
 import sys
 import asyncio
 import threading
+import signal
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton
@@ -9,7 +10,7 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 from aiogram.enums import ChatMemberStatus
 from datetime import datetime
-import aiohttp  # Заменяем requests на асинхронный aiohttp
+import aiohttp
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 import os
@@ -41,7 +42,6 @@ TELEGRAM_URL = "https://t.me/autozakazdv"
 GUAZI_URL = "https://www.guazi.com"
 BASE_RECYCLING_FEE_INDIVIDUAL = 20000
 BASE_RECYCLING_FEE_LEGAL = 150000
-BASE_EXCISE_RATE = 61
 CHANNEL_ID = -1002265390233
 
 # Константы для электромобилей
@@ -60,6 +60,17 @@ EXCISE_RATES_ELECTRIC = {
     (300, 400): 1555,    # 300-400 л.с.
     (400, 500): 1609,    # 400-500 л.с.
     (500, float('inf')): 1662  # свыше 500 л.с.
+}
+
+# Актуальные ставки акциза для ДВС (бензин/дизель) на 2025 год :cite[4]
+EXCISE_RATES_ICE = {
+    (0, 90): 0,
+    (90, 150): 61,
+    (150, 200): 583,
+    (200, 300): 955,
+    (300, 400): 1628,
+    (400, 500): 1685,
+    (500, float('inf')): 1740
 }
 
 SITE_IMAGE_URL = "https://autozakaz-dv.ru/local/templates/autozakaz/images/logo_header.png"
@@ -199,7 +210,7 @@ def calculate_duty(price_rub: float, age_months: int, engine_volume_cc: int,
                   is_individual: bool, eur_rate: float, is_electric: bool,
                   is_personal_use: bool) -> float:
     
-    # Для электромобилей всегда 15% пошлина
+    # Для электромобилей всегда 15% пошлина :cite[4]
     if is_electric:
         return price_rub * ELECTRIC_DUTY_RATE
     
@@ -262,7 +273,7 @@ def calculate_duty(price_rub: float, age_months: int, engine_volume_cc: int,
             eur_per_cc = 5.7
         return eur_per_cc * engine_volume_cc * eur_rate
 
-# Расчет утильсбора
+# Расчет утильсбора :cite[6]
 def calculate_recycling(age_months: int, engine_volume_cc: int, is_individual: bool, 
                        is_personal_use: bool, is_electric: bool) -> float:
     if is_electric:
@@ -292,12 +303,16 @@ def calculate_recycling(age_months: int, engine_volume_cc: int, is_individual: b
         
     return BASE_RECYCLING_FEE_LEGAL * coefficient
 
-def calculate_excise(engine_power_hp: int) -> float:
-    return engine_power_hp * BASE_EXCISE_RATE
-
+# Расчет акциза для электромобилей по мощности в л.с. :cite[4]
 def calculate_excise_electric(power_hp: float) -> float:
-    """Расчет акциза для электромобилей по мощности в л.с."""
     for (min_power, max_power), rate in EXCISE_RATES_ELECTRIC.items():
+        if min_power < power_hp <= max_power:
+            return power_hp * rate
+    return 0
+
+# Расчет акциза для ДВС (бензин/дизель) по мощности в л.с. :cite[4]
+def calculate_excise_ice(power_hp: float) -> float:
+    for (min_power, max_power), rate in EXCISE_RATES_ICE.items():
         if min_power < power_hp <= max_power:
             return power_hp * rate
     return 0
@@ -601,8 +616,18 @@ async def calculate_and_send_result(message: types.Message, state: FSMContext, d
         else:
             # Для ДВС - мощность в л.с.
             engine_power_hp = data.get('engine_power', 0)
-            excise = calculate_excise(engine_power_hp) if not is_individual else 0
-            current_rate = BASE_EXCISE_RATE
+            if is_individual:
+                # Физические лица не платят акциз за ДВС :cite[4]
+                excise = 0
+                current_rate = 0
+            else:
+                # Юридические лица платят акциз по ставкам для ДВС :cite[4]
+                excise = calculate_excise_ice(engine_power_hp)
+                current_rate = 0
+                for (min_power, max_power), rate in EXCISE_RATES_ICE.items():
+                    if min_power < engine_power_hp <= max_power:
+                        current_rate = rate
+                        break
         
         duty = calculate_duty(price_rub, data['age_months'], engine_volume_cc, 
                              is_individual, eur_rate, is_electric, is_personal_use)
@@ -610,6 +635,7 @@ async def calculate_and_send_result(message: types.Message, state: FSMContext, d
         recycling = calculate_recycling(data['age_months'], engine_volume_cc, 
                                       is_individual, is_personal_use, is_electric)
         
+        # НДС: для электромобилей всегда 20%, для юрлиц всегда 20% :cite[4]:cite[6]
         vat_base = price_rub + duty + excise
         vat = vat_base * 0.2 if (is_electric or not is_individual) else 0
         
@@ -647,7 +673,7 @@ async def calculate_and_send_result(message: types.Message, state: FSMContext, d
             if is_electric:
                 result += f"- Акциз: {format_number(excise)} руб. ({current_rate} руб./л.с.)\n"
             else:
-                result += f"- Акциз: {format_number(excise)} руб.\n"
+                result += f"- Акциз: {format_number(excise)} руб. ({current_rate} руб./л.с.)\n"
         
         if vat > 0:
             result += f"- НДС (20%): {format_number(vat)} руб.\n"
@@ -790,37 +816,25 @@ async def start_webapp():
 
 # Функция для периодической очистки устаревших состояний
 async def cleanup_storage():
-    while True:
-        await asyncio.sleep(3600)  # Каждый час
-        logger.info("Cleaning up expired states...")
-        now = datetime.now()
-        expired_keys = []
-        for key, data in storage.data.items():
-            state_time = data['state_timestamp']
-            if (now - state_time).total_seconds() > 7200:  # 2 часа
-                expired_keys.append(key)
-        
-        for key in expired_keys:
-            del storage.data[key]
-        logger.info(f"Cleaned up {len(expired_keys)} expired states")
-
-# Запуск приложения с автоматическим перезапуском
-async def run_bot():
-    while True:
-        try:
-            logger.info("Starting bot polling...")
-            await dp.start_polling(bot)
-        except Exception as e:
-            logger.error(f"Bot crashed: {e}", exc_info=True)
-            logger.info("Restarting bot in 5 seconds...")
-            await asyncio.sleep(5)
-
-# Запуск веб-сервера в отдельном потоке
-def run_webapp_thread():
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(start_webapp())
-    loop.run_forever()
+    try:
+        while True:
+            await asyncio.sleep(3600)  # Каждый час
+            logger.info("Cleaning up expired states...")
+            now = datetime.now()
+            expired_keys = []
+            for key, data in storage.data.items():
+                state_time = data['state_timestamp']
+                if (now - state_time).total_seconds() > 7200:  # 2 часа
+                    expired_keys.append(key)
+            
+            for key in expired_keys:
+                del storage.data[key]
+            logger.info(f"Cleaned up {len(expired_keys)} expired states")
+    except asyncio.CancelledError:
+        logger.info("Cleanup task cancelled")
+        raise
+    except Exception as e:
+        logger.error(f"Error in cleanup_storage: {e}", exc_info=True)
 
 # Основная функция
 async def main():
@@ -828,14 +842,61 @@ async def main():
     dp.errors.register(global_error_handler)
     
     # Запуск периодической очистки состояний
-    asyncio.create_task(cleanup_storage())
+    cleanup_task = asyncio.create_task(cleanup_storage())
     
     # Запуск HTTP сервера в отдельном потоке
     web_thread = threading.Thread(target=run_webapp_thread, daemon=True)
     web_thread.start()
     
-    # Запуск бота с автоматическим перезапуском
-    await run_bot()
+    # Создаем событие для отслеживания завершения
+    shutdown_event = asyncio.Event()
+    
+    # Регистрируем обработчики сигналов
+    loop = asyncio.get_running_loop()
+    loop.add_signal_handler(signal.SIGINT, shutdown_event.set)
+    loop.add_signal_handler(signal.SIGTERM, shutdown_event.set)
+    
+    try:
+        logger.info("Starting bot polling...")
+        polling_task = asyncio.create_task(dp.start_polling(bot))
+        
+        # Ждем либо сигнала завершения, либо завершения поллинга
+        await shutdown_event.wait()
+    finally:
+        # Останавливаем поллинг
+        logger.info("Stopping bot polling...")
+        await dp.stop_polling()
+        
+        # Отменяем задачу поллинга
+        if polling_task and not polling_task.done():
+            polling_task.cancel()
+            try:
+                await polling_task
+            except asyncio.CancelledError:
+                pass
+        
+        # Отменяем задачу очистки
+        cleanup_task.cancel()
+        try:
+            await cleanup_task
+        except asyncio.CancelledError:
+            pass
+        
+        # Закрываем ресурсы
+        logger.info("Closing bot session...")
+        await bot.session.close()
+        
+        logger.info("Closing storage...")
+        await dp.storage.close()
+        await dp.storage.wait_closed()
+        
+        logger.info("Bot shutdown complete")
+
+def run_webapp_thread():
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(start_webapp())
+    loop.run_forever()
 
 if __name__ == "__main__":
     logger.info("Starting bot...")
