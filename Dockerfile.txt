@@ -9,9 +9,13 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-COPY . .
+# Копируем сначала только requirements и constraints
+COPY requirements.txt constraints.txt ./
 
 RUN pip install --upgrade pip && \
     pip install --no-cache-dir -c constraints.txt -r requirements.txt
+
+# Копируем остальные файлы
+COPY . .
 
 CMD ["python", "bot.py"]
