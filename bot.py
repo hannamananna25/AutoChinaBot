@@ -743,23 +743,27 @@ if __name__ == "__main__":
     asyncio.run(main())
     from aiohttp import web
 
-# Добавьте этот код перед запуском бота
-async def handle(request):
+# Добавьте этот код в самый конец файла, перед запуском бота
+async def health_check(request):
     return web.Response(text="Bot is running")
 
 app = web.Application()
-app.add_routes([web.get('/', handle)])
+app.add_routes([web.get('/', health_check)])
 
 async def start_webapp():
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, '0.0.0.0', 8000)
     await site.start()
-
-async def on_startup(dp):
-    asyncio.create_task(start_webapp())
-    await bot.send_message(chat_id=ВАШ_CHAT_ID, text="✅ Бот запущен")
+    print("HTTP server started on port 8000")
 
 if __name__ == "__main__":
+    import asyncio
+    loop = asyncio.get_event_loop()
+    
+    # Запускаем HTTP-сервер в фоне
+    loop.create_task(start_webapp())
+    
+    # Запускаем бота
     from aiogram import executor
-    executor.start_polling(dp, on_startup=on_startup, skip_updates=True)
+    executor.start_polling(dp, skip_updates=True)
