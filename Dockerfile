@@ -21,5 +21,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
-
+# Добавьте это перед CMD
+RUN pip freeze && \
+    echo "Пакеты успешно установлены!"
 CMD ["python", "bot.py"]
