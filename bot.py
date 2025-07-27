@@ -574,6 +574,7 @@ async def personal_use_handler(message: types.Message, state: FSMContext):
 
 async def calculate_and_send_result(message: types.Message, state: FSMContext, data: dict, is_individual: bool, is_personal_use: bool):
     try:
+        # Выполняем расчет стоимости
         rates = get_currency_rates()
         price_rub = data['price'] * rates['CNY']
         eur_rate = rates['EUR']
@@ -619,6 +620,7 @@ async def calculate_and_send_result(message: types.Message, state: FSMContext, d
             purpose = "личное пользование" if is_personal_use else "перепродажа"
             importer_type += f" ({purpose})"
         
+        # Формируем результат расчета
         result = (
             f"📊 <b>Результат расчета</b> (актуально на {datetime.now().strftime('%d.%m.%Y')}):\n\n"
             f"💰 <b>Стоимость авто:</b> {format_number(data['price'])} CNY ({format_number(price_rub)} руб.)\n"
@@ -666,31 +668,44 @@ async def calculate_and_send_result(message: types.Message, state: FSMContext, d
         elif not is_individual:
             result += "\n\nℹ️ <i>Для ДВС юридических лиц: учтены пошлина, акциз, НДС и утильсбор</i>"
         
-        # Разделяем сообщение если слишком длинное
-        if len(result) > 4096:
-            part1 = result[:4000]
-            part2 = result[4000:]
-            await message.answer(part1, parse_mode="HTML")
-            await message.answer(part2, parse_mode="HTML", reply_markup=main_menu())
-        else:
-            await message.answer(result, parse_mode="HTML", reply_markup=main_menu())
+        # Отправляем текстовый результат
+        try:
+            if len(result) > 4096:
+                parts = [result[i:i+4096] for i in range(0, len(result), 4096)]
+                for part in parts:
+                    await message.answer(part, parse_mode="HTML")
+                await message.answer("Выберите действие:", reply_markup=main_menu())
+            else:
+                await message.answer(result, parse_mode="HTML", reply_markup=main_menu())
+        except Exception as text_error:
+            logger.error(f"Ошибка при отправке текста: {text_error}", exc_info=True)
+            # Не прерываем выполнение, просто логируем
         
-        site_info = (
-            "С уважением, Авто Заказ ДВ\n\n"
-            f"<a href='{TELEGRAM_URL}'>- Заказать авто</a>\n"
-            f"<a href='{SITE_URL}'>autozakaz-dv.ru</a>\n"
-            "Главная"
-        )
+        # Отправляем фото (не критично, если не получится)
+        try:
+            site_info = (
+                "С уважением, Авто Заказ ДВ\n\n"
+                f"<a href='{TELEGRAM_URL}'>- Заказать авто</a>\n"
+                f"<a href='{SITE_URL}'>autozakaz-dv.ru</a>\n"
+                "Главная"
+            )
+            
+            await message.answer_photo(
+                photo=SITE_IMAGE_URL,
+                caption=site_info,
+                parse_mode="HTML"
+            )
+        except Exception as photo_error:
+            logger.error(f"Ошибка при отправке фото: {photo_error}", exc_info=True)
+            # В случае ошибки отправляем текстовую версию
+            await message.answer(site_info, parse_mode="HTML")
         
-        await message.answer_photo(
-            photo=SITE_IMAGE_URL,
-            caption=site_info,
-            parse_mode="HTML"
-        )
-        
+        # Очищаем состояние
         await state.clear()
+        
     except Exception as e:
-        logger.error(f"Ошибка в calculate_and_send_result: {e}", exc_info=True)
+        # Обрабатываем только реальные ошибки расчета
+        logger.error(f"Критическая ошибка при расчете стоимости: {e}", exc_info=True)
         logger.error(f"Данные расчета: {data}")
         await message.answer("⚠️ Произошла ошибка при расчете стоимости. Пожалуйста, попробуйте еще раз.")
         await state.clear()
