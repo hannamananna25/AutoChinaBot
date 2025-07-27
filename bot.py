@@ -1,18 +1,7 @@
 import logging
 import sys
-
-# Настройка логирования
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    stream=sys.stdout
-)
-
-async def on_error(event: types.Update, exception: Exception):
-    logging.error(f"Ошибка: {exception}", exc_info=True)
-import logging
 import asyncio
-from aiogram import Bot, Dispatcher, types
+from aiogram import Bot, Dispatcher, types  # Добавлен импорт types
 from aiogram.filters import Command
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.fsm.state import State, StatesGroup
@@ -25,6 +14,7 @@ from dotenv import load_dotenv
 import os
 import re
 from xml.etree import ElementTree as ET
+from aiohttp import web  # Перемещен в основной импорт
 
 # Настройка логирования
 logging.basicConfig(
@@ -75,6 +65,14 @@ SITE_IMAGE_URL = "https://autozakaz-dv.ru/local/templates/autozakaz/images/logo_
 # Инициализация бота
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
+
+# Обработчик ошибок (добавлен)
+async def on_error(update: types.Update, exception: Exception):
+    logging.error(f"Ошибка: {exception}", exc_info=True)
+    return True
+
+# Регистрация обработчика ошибок
+dp.errors.register(on_error)
 
 # Состояния бота
 class Form(StatesGroup):
@@ -748,14 +746,7 @@ async def handle_unknown(message: types.Message):
         reply_markup=ReplyKeyboardRemove()
     )
 
-async def main():
-    await dp.start_polling(bot)
-
-if __name__ == "__main__":
-    asyncio.run(main())
-    from aiohttp import web
-
-# Добавьте этот код в самый конец файла, перед запуском бота
+# HTTP-сервер для проверки работоспособности
 async def health_check(request):
     return web.Response(text="Bot is running")
 
