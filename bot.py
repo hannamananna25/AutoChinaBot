@@ -9,10 +9,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram.enums import ChatMemberStatus
 from datetime import datetime
 import requests
-from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 import os
-import re
 from xml.etree import ElementTree as ET
 from aiohttp import web
 
@@ -51,13 +49,13 @@ BASE_RECYCLING_FEE_ELECTRIC_LEGAL_OLD = 1174000
 
 # Актуальные ставки акциза для электромобилей (руб/л.с.)
 EXCISE_RATES_ELECTRIC_HP = {
-    (0, 90): 0,          # до 90 л.с.
-    (90, 150): 58,       # 90-150 л.с.
-    (150, 200): 557,     # 150-200 л.с.
-    (200, 300): 912,     # 200-300 л.с.
-    (300, 400): 1555,    # 300-400 л.с.
-    (400, 500): 1609,    # 400-500 л.с.
-    (500, float('inf')): 1662  # свыше 500 л.с.
+    (0, 90): 0,
+    (90, 150): 58,
+    (150, 200): 557,
+    (200, 300): 912,
+    (300, 400): 1555,
+    (400, 500): 1609,
+    (500, float('inf')): 1662
 }
 
 SITE_IMAGE_URL = "https://autozakaz-dv.ru/local/templates/autozakaz/images/logo_header.png"
@@ -188,7 +186,12 @@ def format_engine_volume(volume_cc):
     return f"{volume_cc} см³ ({liters:.1f} л)" if liters != int(liters) else f"{volume_cc} см³ ({int(liters)} л)"
 
 def format_number(value):
-    return "{0:,}".format(int(value)).replace(",", ".")
+    try:
+        # Обработка как целых, так и дробных чисел
+        num = int(round(float(value)))
+        return "{0:,}".format(num).replace(",", ".")
+    except (ValueError, TypeError):
+        return str(value)
 
 # Расчет пошлины (исправлено по данным tks.ru)
 def calculate_duty(price_rub: float, age_months: int, engine_volume_cc: int, 
@@ -226,7 +229,7 @@ def calculate_duty(price_rub: float, age_months: int, engine_volume_cc: int,
             min_rate_eur = 20
             
         duty_by_percent = price_rub * rate_percent
-        duty_by_volume = min_rate_eur * eur_rate * (engine_volume_cc / 1000)  # Правильный расчет
+        duty_by_volume = min_rate_eur * eur_rate * (engine_volume_cc / 1000)  # Правильный расчет в литрах
         return max(duty_by_percent, duty_by_volume)
         
     elif 36 < age_months <= 60:
@@ -242,7 +245,7 @@ def calculate_duty(price_rub: float, age_months: int, engine_volume_cc: int,
             eur_per_cc = 3.0
         else:
             eur_per_cc = 3.6
-        return eur_per_cc * (engine_volume_cc / 1000) * eur_rate  # Правильный расчет
+        return eur_per_cc * (engine_volume_cc / 1000) * eur_rate
         
     else:
         if engine_volume_cc <= 1000:
@@ -257,7 +260,7 @@ def calculate_duty(price_rub: float, age_months: int, engine_volume_cc: int,
             eur_per_cc = 5.0
         else:
             eur_per_cc = 5.7
-        return eur_per_cc * (engine_volume_cc / 1000) * eur_rate  # Правильный расчет
+        return eur_per_cc * (engine_volume_cc / 1000) * eur_rate
 
 # Расчет утильсбора
 def calculate_recycling(age_months: int, engine_volume_cc: int, is_individual: bool, 
@@ -290,17 +293,21 @@ def calculate_recycling(age_months: int, engine_volume_cc: int, is_individual: b
     return BASE_RECYCLING_FEE_LEGAL * coefficient
 
 def calculate_excise(engine_power_hp: int) -> float:
-    return engine_power_hp * BASE_EXCISE_RATE
+    return float(engine_power_hp) * BASE_EXCISE_RATE
 
 def calculate_excise_electric(power_kw: float) -> float:
     """Расчет акциза для электромобилей по мощности в кВт с конвертацией в л.с."""
-    power_hp = power_kw * 1.35962  # Конвертация кВт в л.с.
-    
-    # Ищем подходящий диапазон мощности
-    for (min_power, max_power), rate in EXCISE_RATES_ELECTRIC_HP.items():
-        if min_power < power_hp <= max_power:
-            return power_hp * rate
-    return 0
+    try:
+        power_hp = float(power_kw) * 1.35962  # Конвертация кВт в л.с.
+        
+        # Ищем подходящий диапазон мощности
+        for (min_power, max_power), rate in EXCISE_RATES_ELECTRIC_HP.items():
+            if min_power < power_hp <= max_power:
+                return power_hp * rate
+        return 0
+    except Exception as e:
+        logger.error(f"Ошибка расчета акциза для электромобиля: {power_kw} кВт", exc_info=True)
+        return 0
 
 # Обработчики сообщений
 @dp.message(Command("start"))
@@ -421,14 +428,20 @@ async def year_month_handler(message: types.Message, state: FSMContext):
             )
             return
         
-        year, month = map(float, message.text.split('.'))
+        # Исправлено: используем int вместо float
+        parts = message.text.split('.')
+        if len(parts) != 2:
+            raise ValueError("Неверный формат даты")
+            
+        year = int(parts[0])
+        month = int(parts[1])
         current_date = datetime.now()
         
         if not (1990 <= year <= current_date.year) or not (1 <= month <= 12):
             await message.answer("❌ Ошибка! Некорректная дата выпуска.")
             return
             
-        manufacture_date = datetime(int(year), int(month), 1)
+        manufacture_date = datetime(year, month, 1)
         age_months = (current_date.year - manufacture_date.year) * 12 + (current_date.month - manufacture_date.month)
         
         await state.update_data(year_month=(year, month), age_months=age_months)
@@ -504,6 +517,7 @@ async def engine_power_handler(message: types.Message, state: FSMContext):
             )
             return
         
+        # Принимаем как float для поддержки дробных значений
         power = float(message.text)
         if power <= 0: 
             await message.answer("❌ Ошибка! Мощность должна быть положительным числом.")
@@ -587,7 +601,7 @@ async def calculate_and_send_result(message: types.Message, state: FSMContext, d
         # Для электромобилей - конвертация кВт в л.с.
         if is_electric:
             power_kw = data.get('engine_power', 0)
-            engine_power_hp = power_kw * 1.35962
+            engine_power_hp = float(power_kw) * 1.35962
             excise = calculate_excise_electric(power_kw)
             
             # Определяем ставку акциза для вывода
@@ -598,7 +612,7 @@ async def calculate_and_send_result(message: types.Message, state: FSMContext, d
                     break
         else:
             # Для ДВС - мощность в л.с.
-            engine_power_hp = data.get('engine_power', 0)
+            engine_power_hp = float(data.get('engine_power', 0))
             excise = calculate_excise(engine_power_hp) if not is_individual else 0
             current_rate = BASE_EXCISE_RATE
         
@@ -626,13 +640,13 @@ async def calculate_and_send_result(message: types.Message, state: FSMContext, d
             f"📊 <b>Результат расчета</b> (актуально на {datetime.now().strftime('%d.%m.%Y')}):\n\n"
             f"💰 <b>Стоимость авто:</b> {format_number(data['price'])} CNY ({format_number(price_rub)} руб.)\n"
             f"📈 <b>Курсы:</b> CNY: {rates['CNY']:.2f} руб., EUR: {rates['EUR']:.2f} руб.\n"
-            f"⏳ <b>Дата выпуска:</b> {data['year_month'][0]:.0f}.{data['year_month'][1]:.0f} ({age_str})\n"
+            f"⏳ <b>Дата выпуска:</b> {data['year_month'][0]}.{data['year_month'][1]} ({age_str})\n"
             f"🔋 <b>Тип двигателя:</b> {data['engine_type']}\n"
         )
         
         if data['engine_type'] in ["🛢️ Бензиновый", "⛽ Дизельный"]:
             result += f"🔧 <b>Объем двигателя:</b> {format_engine_volume(engine_volume_cc)}\n"
-            result += f"⚡ <b>Мощность двигателя:</b> {data.get('engine_power', 0)} л.с.\n"
+            result += f"⚡ <b>Мощность двигателя:</b> {int(round(data.get('engine_power', 0)))} л.с.\n"
         else:
             result += f"⚡ <b>Мощность двигателя:</b> {data.get('engine_power', 0)} кВт ({engine_power_hp:.1f} л.с.)\n"
         
@@ -688,11 +702,11 @@ async def calculate_and_send_result(message: types.Message, state: FSMContext, d
             "Главная"
         )
         
-        # Временно закомментируем отправку фото для отладки
+        # Временно отключим отправку фото для стабильности
         # await message.answer_photo(
-        #     photo=SITE_IMAGE_URL,
-        #     caption=site_info,
-        #     parse_mode="HTML"
+        #    photo=SITE_IMAGE_URL,
+        #    caption=site_info,
+        #    parse_mode="HTML"
         # )
         
         await state.clear()
