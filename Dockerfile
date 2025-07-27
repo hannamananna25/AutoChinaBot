@@ -9,12 +9,10 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Обновляем pip и устанавливаем виртуальное окружение
-RUN pip install --upgrade pip setuptools wheel && \
-    python -m venv /venv
-ENV PATH="/venv/bin:$PATH"
+# Обновляем pip
+RUN pip install --upgrade pip setuptools wheel
 
-# Копируем и устанавливаем зависимости из requirements.txt
+# Устанавливаем зависимости
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
