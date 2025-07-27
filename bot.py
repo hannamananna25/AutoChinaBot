@@ -1,4 +1,16 @@
 import logging
+import sys
+
+# Настройка логирования
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    stream=sys.stdout
+)
+
+async def on_error(event: types.Update, exception: Exception):
+    logging.error(f"Ошибка: {exception}", exc_info=True)
+import logging
 import asyncio
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
