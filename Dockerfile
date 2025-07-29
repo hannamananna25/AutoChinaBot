@@ -1,7 +1,8 @@
 FROM python:3.11-slim
 
-# Используем зеркало для надежности
-RUN sed -i 's/deb.debian.org/mirror.yandex.ru/g' /etc/apt/sources.list
+# Используем надежные зеркала
+RUN sed -i 's/deb.debian.org/mirror.yandex.ru/g' /etc/apt/sources.list && \
+    sed -i 's/security.debian.org/mirror.yandex.ru/g' /etc/apt/sources.list
 
 WORKDIR /app
 
