@@ -1,10 +1,13 @@
 FROM python:3.11-slim
 
+# Используем зеркало для надежности
+RUN sed -i 's/deb.debian.org/mirror.yandex.ru/g' /etc/apt/sources.list
+
 WORKDIR /app
 
-# Установка зависимостей для парсинга XML и работы с SSL
+# Установка зависимостей
 RUN apt-get update && \
-    apt-get install -y libxml2-dev libxslt-dev gcc libssl-dev && \
+    apt-get install -y gcc python3-dev libxml2-dev libxslt-dev libssl-dev && \
     rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
