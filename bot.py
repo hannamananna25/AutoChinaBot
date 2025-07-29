@@ -385,13 +385,8 @@ async def start_command_handler(message: types.Message):
         logger.error(f"Ошибка в start_command_handler: {e}", exc_info=True)
         await message.answer("⚠️ Произошла ошибка. Пожалуйста, попробуйте позже.")
 
-# ... (остальные обработчики остаются без изменений, но тоже временно отключаем проверку подписки) ...
-
 # Основная функция
 async def main():
-    # Регистрация обработчика ошибок
-    dp.errors.register(global_error_handler)
-    
     logger.info("Starting bot polling...")
     await dp.start_polling(bot)
 
