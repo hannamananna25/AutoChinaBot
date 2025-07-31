@@ -1,4 +1,4 @@
-FROM python:3.11-alpine
+FROM python:3.11-slim
 
 # Добавляем системные зависимости
 RUN apk add --no-cache gcc musl-dev libffi-dev openssl-dev
