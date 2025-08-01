@@ -14,7 +14,6 @@ RUN apt-get update && \
 # Копируем зависимости
 COPY requirements.txt .
 
-# Установка Python-зависимостей с китайским зеркалом
 RUN pip install --no-cache-dir --default-timeout=100 \
     -i https://pypi.tuna.tsinghua.edu.cn/simple \
     -r requirements.txt
