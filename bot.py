@@ -836,27 +836,21 @@ async def main():
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
-    print("\n" + "="*50)
-    print("Проверка установки библиотек:")
+    print("\n" + "="*60)
+    print("ДИАГНОСТИКА УСТАНОВКИ:")
+    
     try:
         import requests
-        print(f"✅ requests установлена, версия: {requests.__version__}")
-    except ImportError:
-        print("❌ requests НЕ УСТАНОВЛЕНА!")
-    
-    print("Содержимое requirements.txt:")
-    try:
-        with open('requirements.txt') as f:
-            print(f.read())
+        print(f"✅ requests: {requests.__version__}")
+        
+        # Тестовый запрос
+        print("\nТЕСТ СЕТИ:")
+        r = requests.get("https://httpbin.org/get", timeout=10)
+        print(f"HTTP-статус: {r.status_code}")
+        
     except Exception as e:
-        print(f"Ошибка чтения requirements.txt: {str(e)}")
+        print(f"❌ ОШИБКА: {str(e)}")
+        import traceback
+        traceback.print_exc()
     
-    print("Список установленных пакетов:")
-    try:
-        import subprocess
-        result = subprocess.run(['pip', 'freeze'], capture_output=True, text=True)
-        print(result.stdout)
-    except Exception as e:
-        print(f"Ошибка: {str(e)}")
-    
-    print("="*50 + "\n")
+    print("="*60 + "\n")
