@@ -1,3 +1,6 @@
+import sys
+print("Python version:", sys.version)
+print("Requests version:", requests.__version__)
 import logging
 import sys
 import asyncio
