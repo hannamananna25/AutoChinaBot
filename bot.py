@@ -836,4 +836,23 @@ async def main():
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    print("="*50)
+    print("Проверка работы библиотек:")
+    try:
+        import requests
+        print(f"✅ requests установлена, версия: {requests.__version__}")
+        
+        # Тестовый запрос
+        response = requests.get("https://httpbin.org/get", timeout=10)
+        print(f"✅ Тестовый запрос выполнен, статус: {response.status_code}")
+        
+        # Проверка других зависимостей
+        from aiogram import __version__ as aiogram_ver
+        print(f"✅ aiogram установлен, версия: {aiogram_ver}")
+        
+    except Exception as e:
+        print(f"❌ Критическая ошибка: {str(e)}")
+        import traceback
+        traceback.print_exc()
+    
+    print("="*50)
