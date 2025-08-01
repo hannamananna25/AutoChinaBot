@@ -1,8 +1,8 @@
 import sys
 print("Python version:", sys.version)
 print("Requests version:", requests.__version__)
+
 import logging
-import sys
 import asyncio
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
@@ -148,11 +148,17 @@ async def is_subscribed(user_id: int) -> bool:
 # Получение курсов валют
 def get_currency_rates():
     try:
+        logger.info("Запрос курсов валют к ЦБ РФ")
         url = 'https://www.cbr.ru/scripts/XML_daily.asp'
         today = datetime.now().strftime("%d/%m/%Y")
         params = {'date_req': today}
         
-        response = requests.get(url, params=params, timeout=15)
+        # Добавлен User-Agent для предотвращения блокировки
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+        
+        response = requests.get(url, params=params, headers=headers, timeout=15)
         response.raise_for_status()
         
         root = ET.fromstring(response.content)
@@ -171,10 +177,11 @@ def get_currency_rates():
                 rates[currency] = default_rates[currency]
                 logger.warning(f"Курс {currency} не найден, использовано значение по умолчанию")
         
+        logger.info(f"Получены курсы: USD={rates['USD']}, EUR={rates['EUR']}, CNY={rates['CNY']}")
         return rates
         
     except Exception as e:
-        logger.error(f"Ошибка получения курсов: {e}", exc_info=True)
+        logger.exception("Ошибка получения курсов")
         return {'USD': 80.0, 'EUR': 90.0, 'CNY': 11.0}
 
 def parse_engine_volume(input_str):
@@ -420,7 +427,9 @@ async def year_month_handler(message: types.Message, state: FSMContext):
             )
             return
         
-        year, month = map(float, message.text.split('.'))
+        # Очищаем ввод от лишних пробелов
+        cleaned_input = message.text.strip().replace(' ', '')
+        year, month = map(float, cleaned_input.split('.'))
         current_date = datetime.now()
         
         if not (1990 <= year <= current_date.year) or not (1 <= month <= 12):
@@ -577,6 +586,8 @@ async def personal_use_handler(message: types.Message, state: FSMContext):
 
 async def calculate_and_send_result(message: types.Message, state: FSMContext, data: dict, is_individual: bool, is_personal_use: bool):
     try:
+        logger.info(f"Начало расчета для данных: {data}")
+        
         # Выполняем расчет стоимости
         rates = get_currency_rates()
         price_rub = data['price'] * rates['CNY']
@@ -703,12 +714,13 @@ async def calculate_and_send_result(message: types.Message, state: FSMContext, d
             # В случае ошибки отправляем текстовую версию
             await message.answer(site_info, parse_mode="HTML")
         
+        logger.info("Расчет успешно завершен и отправлен")
         # Очищаем состояние
         await state.clear()
         
     except Exception as e:
         # Обрабатываем только реальные ошибки расчета
-        logger.error(f"Критическая ошибка при расчете стоимости: {e}", exc_info=True)
+        logger.exception(f"Критическая ошибка при расчете стоимости")
         logger.error(f"Данные расчета: {data}")
         await message.answer("⚠️ Произошла ошибка при расчете стоимости. Пожалуйста, попробуйте еще раз.")
         await state.clear()
@@ -819,8 +831,8 @@ async def main():
     asyncio.create_task(start_webapp())
     
     # Запуск бота
+    logger.info("Бот запускается...")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
-    logger.info("Starting bot...")
     asyncio.run(main())
