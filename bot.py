@@ -836,23 +836,27 @@ async def main():
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
-    print("="*50)
-    print("Проверка работы библиотек:")
+    print("\n" + "="*50)
+    print("Проверка установки библиотек:")
     try:
         import requests
         print(f"✅ requests установлена, версия: {requests.__version__}")
-        
-        # Тестовый запрос
-        response = requests.get("https://httpbin.org/get", timeout=10)
-        print(f"✅ Тестовый запрос выполнен, статус: {response.status_code}")
-        
-        # Проверка других зависимостей
-        from aiogram import __version__ as aiogram_ver
-        print(f"✅ aiogram установлен, версия: {aiogram_ver}")
-        
-    except Exception as e:
-        print(f"❌ Критическая ошибка: {str(e)}")
-        import traceback
-        traceback.print_exc()
+    except ImportError:
+        print("❌ requests НЕ УСТАНОВЛЕНА!")
     
-    print("="*50)
+    print("Содержимое requirements.txt:")
+    try:
+        with open('requirements.txt') as f:
+            print(f.read())
+    except Exception as e:
+        print(f"Ошибка чтения requirements.txt: {str(e)}")
+    
+    print("Список установленных пакетов:")
+    try:
+        import subprocess
+        result = subprocess.run(['pip', 'freeze'], capture_output=True, text=True)
+        print(result.stdout)
+    except Exception as e:
+        print(f"Ошибка: {str(e)}")
+    
+    print("="*50 + "\n")
