@@ -1,3 +1,22 @@
+print("="*60)
+print("НАЧАЛО ДИАГНОСТИКИ")
+
+try:
+    import requests
+    print(f"✅ Библиотека requests установлена, версия: {requests.__version__}")
+    
+    # Проверка работы сети
+    print("\nПРОВЕРКА СЕТИ:")
+    response = requests.get("https://httpbin.org/get", timeout=10)
+    print(f"Статус тестового запроса: {response.status_code}")
+    
+except Exception as e:
+    print(f"❌ КРИТИЧЕСКАЯ ОШИБКА: {str(e)}")
+    import traceback
+    traceback.print_exc()
+
+print("="*60)
+print("ЗАПУСК БОТА\n")
 import sys
 import requests
 print("Python version:", sys.version)
