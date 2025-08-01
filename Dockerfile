@@ -1,9 +1,9 @@
-FROM python:3.11-alpine
+FROM python:3.11-slim
 
 WORKDIR /app
 
 # Установка системных зависимостей
-RUN apk add --no-cache gcc musl-dev libffi-dev openssl-dev
+RUN apt-get update && apt-get install -y --no-install-recommends gcc python3-dev
 
 # Копируем зависимости
 COPY requirements.txt .
@@ -11,10 +11,8 @@ COPY requirements.txt .
 # Устанавливаем Python-зависимости
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Копируем код
+# Копируем исходный код
 COPY . .
 
-# Явно устанавливаем requests
-RUN pip install requests==2.31.0
-
+# Запуск бота
 CMD ["python", "bot.py"]
