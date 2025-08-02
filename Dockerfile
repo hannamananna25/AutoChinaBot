@@ -1,18 +1,16 @@
 FROM python:3.11-slim
 
-# Установка системных зависимостей
-RUN apt-get update && apt-get install -y gcc libffi-dev git
+# Установка DNS и обновление пакетов
+RUN echo "nameserver 8.8.8.8" > /etc/resolv.conf && \
+    echo "nameserver 8.8.4.4" >> /etc/resolv.conf && \
+    apt-get update && \
+    apt-get install -y gcc libffi-dev git
 
-# Копируем только requirements.txt сначала для кэширования
 WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-
-# Явная установка requests на случай проблем
 RUN pip install --no-cache-dir requests==2.31.0
 
-# Копируем остальные файлы
 COPY . .
 
-# Запускаем скрипт
 CMD ["python", "bot.py"]
