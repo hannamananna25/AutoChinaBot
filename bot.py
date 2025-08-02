@@ -74,8 +74,9 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Загрузка переменных окружения
-load_dotenv()
-TOKEN = os.getenv("BOT_TOKEN")
+# Временное решение - токен прямо в коде
+TOKEN = "8114558518:AAFZEmq9gObeJ69ACJvGvzqoL2zzgDTx0zE"
+# TOKEN = os.getenv("BOT_TOKEN")  # Закомментировать эту строку
 
 # Проверка токена
 if not TOKEN:
@@ -895,3 +896,4 @@ if __name__ == "__main__":
     print("⚡ ВСЕ СИСТЕМЫ ГОТОВЫ К РАБОТЕ\n")
     
     asyncio.run(main())
+
