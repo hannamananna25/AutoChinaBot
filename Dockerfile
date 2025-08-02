@@ -1,16 +1,13 @@
-FROM python:3.11-slim
-
-# Установка DNS и обновление пакетов
-RUN echo "nameserver 8.8.8.8" > /etc/resolv.conf && \
-    echo "nameserver 8.8.4.4" >> /etc/resolv.conf && \
-    apt-get update && \
-    apt-get install -y gcc libffi-dev git iputils-ping curl  # Добавили сетевые утилиты
+FROM python:3.11
 
 WORKDIR /app
+
+# Копируем зависимости первыми для кэширования
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install --no-cache-dir requests==2.31.0
 
+# Копируем ВСЕ файлы включая .env
 COPY . .
 
-CMD ["python", "bot.py"]
+# Принудительно указываем путь к .env
+CMD ["python", "-c", "from dotenv import load_dotenv; load_dotenv('/app/.env'); import bot"]
