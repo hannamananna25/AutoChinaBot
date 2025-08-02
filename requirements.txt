@@ -1,5 +1,5 @@
+requests==2.31.0
 aiogram==3.0.0b7
 python-dotenv
-requests
 beautifulsoup4
 aiohttp
