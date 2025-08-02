@@ -77,13 +77,16 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")
 
-# TOKEN = os.getenv("BOT_TOKEN")  # Закомментировать эту строку
-
-# Проверка токена
+# ======= ДИАГНОСТИКА ТОКЕНА ======= (начало)
+print(f"Тип токена: {type(TOKEN)}")
+print(f"Значение токена: {TOKEN}")
 if not TOKEN:
+    print("❌ КРИТИЧЕСКАЯ ОШИБКА: Токен не загружен!")
     logger.error("❌ ОШИБКА: Не удалось загрузить BOT_TOKEN из .env файла")
-    print("❌ ОШИБКА: Не удалось загрузить BOT_TOKEN из .env файла")
     exit(1)
+else:
+    print("✅ Токен успешно загружен")
+# ======= ДИАГНОСТИКА ТОКЕНА ======= (конец)
 
 # Константы (ИСПРАВЛЕНЫ ОПЕЧАТКИ)
 DELIVERY_COST = 165000
@@ -897,5 +900,6 @@ if __name__ == "__main__":
     print("⚡ ВСЕ СИСТЕМЫ ГОТОВЫ К РАБОТЕ\n")
     
     asyncio.run(main())
+
 
 
