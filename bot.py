@@ -1,37 +1,46 @@
 import sys
 import subprocess
-import logging
-import asyncio
-import re
 import os
-from datetime import datetime
-from xml.etree import ElementTree as ET
 
 print("=" * 60)
-print("🚀 ЗАПУСК ДИАГНОСТИКИ СИСТЕМЫ")
+print("🚀 СИСТЕМНАЯ ДИАГНОСТИКА ПРИ ЗАПУСКЕ")
 
-# Установка requests при необходимости
+# 1. Проверка версии Python
+print(f"\n🐍 Версия Python: {sys.version}")
+print(f"📂 Рабочая директория: {os.getcwd()}")
+
+# 2. Проверка установки pip
+try:
+    import pip
+    print(f"✅ pip установлен, версия: {pip.__version__}")
+except ImportError:
+    print("❌ pip не установлен! Попытка установки...")
+    subprocess.check_call([sys.executable, "-m", "ensurepip", "--default-pip"])
+
+# 3. Проверка requests
 try:
     import requests
     print(f"✅ requests установлена, версия: {requests.__version__}")
 except ImportError:
-    print("⚠️ requests не установлена, выполняю установку...")
+    print("❌ requests не установлена! Выполняю принудительную установку...")
     subprocess.check_call([sys.executable, "-m", "pip", "install", "requests==2.31.0"])
     import requests
     print(f"✅ requests успешно установлена, версия: {requests.__version__}")
 
-# Проверка работы сети
-print("\n🔧 ТЕСТ СЕТЕВОГО ПОДКЛЮЧЕНИЯ:")
+# 4. Проверка сети
+print("\n🌐 ТЕСТ СЕТЕВОГО ПОДКЛЮЧЕНИЯ:")
 try:
     response = requests.get("https://httpbin.org/get", timeout=10)
-    print(f"HTTP-статус: {response.status_code}")
-    print(f"Время отклика: {response.elapsed.total_seconds():.2f} сек")
+    print(f"Статус: {response.status_code}")
+    print(f"IP-адрес: {response.json().get('origin', 'неизвестен')}")
 except Exception as e:
-    print(f"❌ КРИТИЧЕСКАЯ ОШИБКА СЕТИ: {str(e)}")
-    print("Проверьте сетевое подключение и DNS сервера")
+    print(f"❌ СЕТЕВАЯ ОШИБКА: {str(e)}")
+    print("Проверьте подключение контейнера к интернету")
 
 print("=" * 60)
-print("🔄 ЗАПУСК ОСНОВНОГО ПРИЛОЖЕНИЯ\n")
+print("⚡ ЗАПУСК БОТА\n")
+
+# Остальной код бота...
 
 # Основные импорты
 from aiogram import Bot, Dispatcher, types
@@ -876,3 +885,4 @@ if __name__ == "__main__":
     print("⚡ ВСЕ СИСТЕМЫ ГОТОВЫ К РАБОТЕ\n")
     
     asyncio.run(main())
+
