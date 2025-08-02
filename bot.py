@@ -1,69 +1,53 @@
 import sys
 import subprocess
+import logging
+import asyncio
+import re
+import os
+from datetime import datetime
+from xml.etree import ElementTree as ET
 
-print("="*60)
-print("ПРОВЕРКА УСТАНОВКИ ЗАВИСИМОСТЕЙ")
+print("=" * 60)
+print("🚀 ЗАПУСК ДИАГНОСТИКИ СИСТЕМЫ")
 
-# Принудительно устанавливаем requests, если отсутствует
+# Установка requests при необходимости
 try:
     import requests
     print(f"✅ requests установлена, версия: {requests.__version__}")
 except ImportError:
-    print("⚠️ requests не установлена, пытаемся установить...")
+    print("⚠️ requests не установлена, выполняю установку...")
     subprocess.check_call([sys.executable, "-m", "pip", "install", "requests==2.31.0"])
     import requests
     print(f"✅ requests успешно установлена, версия: {requests.__version__}")
 
 # Проверка работы сети
-print("\nТЕСТ СЕТИ:")
+print("\n🔧 ТЕСТ СЕТЕВОГО ПОДКЛЮЧЕНИЯ:")
 try:
     response = requests.get("https://httpbin.org/get", timeout=10)
     print(f"HTTP-статус: {response.status_code}")
+    print(f"Время отклика: {response.elapsed.total_seconds():.2f} сек")
 except Exception as e:
-    print(f"❌ Ошибка сети: {str(e)}")
+    print(f"❌ КРИТИЧЕСКАЯ ОШИБКА СЕТИ: {str(e)}")
+    print("Проверьте сетевое подключение и DNS сервера")
 
-print("="*60)
-print("ЗАПУСК БОТА\n")
+print("=" * 60)
+print("🔄 ЗАПУСК ОСНОВНОГО ПРИЛОЖЕНИЯ\n")
 
-# Остальной код бота без изменений...
-logger.info(f"Версия Python: {sys.version}")
-logger.info(f"Путь к Python: {sys.executable}")
-
-try:
-    import requests
-    logger.info(f"✅ requests установлена, версия: {requests.__version__}")
-    
-    # Проверка работы сети
-    response = requests.get("https://httpbin.org/get", timeout=10)
-    logger.info(f"Статус тестового запроса: {response.status_code}")
-    
-except Exception as e:
-    logger.error(f"❌ ОШИБКА: {str(e)}", exc_info=True)
-
-logger.info("=" * 60)
-
-# Остальной импорт
-from aiogram import Bot, Dispatcher, types
-# ... остальной код без изменений ...
-import requests
-print("Python version:", sys.version)
-print("Requests version:", requests.__version__)
-
-import logging
-import asyncio
+# Основные импорты
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import (
+    ReplyKeyboardMarkup, 
+    KeyboardButton, 
+    ReplyKeyboardRemove,
+    InlineKeyboardMarkup, 
+    InlineKeyboardButton
+)
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 from aiogram.enums import ChatMemberStatus
-from datetime import datetime
-import requests
-from bs4 import BeautifulSoup
 from dotenv import load_dotenv
-import os
-import re
-from xml.etree import ElementTree as ET
+from bs4 import BeautifulSoup
 from aiohttp import web
 
 # Настройка логирования
@@ -93,21 +77,21 @@ BASE_EXCISE_RATE = 61
 CHANNEL_ID = -1002265390233
 
 # Константы для электромобилей
-ELECTRIC_DUTY_RATE = 0.15  # Всегда 15% для электромобилей
+ELECTRIC_DUTY_RATE = 0.15
 BASE_RECYCLING_FEE_ELECTRIC_INDIVIDUAL_NEW = 3400
 BASE_RECYCLING_FEE_ELECTRIC_INDIVIDUAL_OLD = 5200
 BASE_RECYCLING_FEE_ELECTRIC_LEGAL_NEW = 667400
 BASE_RECYCLING_FEE_ELECTRIC_LEGAL_OLD = 1174000
 
-# Актуальные ставки акциза для электромобилей (руб/л.с.) на 2025 год
+# Актуальные ставки акциза для электромобилей
 EXCISE_RATES_ELECTRIC = {
-    (0, 90): 0,          # до 90 л.с. - нулевой акциз
-    (90, 150): 58,       # 90-150 л.с.
-    (150, 200): 557,     # 150-200 л.с.
-    (200, 300): 912,     # 200-300 л.с.
-    (300, 400): 1555,    # 300-400 л.с.
-    (400, 500): 1609,    # 400-500 л.с.
-    (500, float('inf')): 1662  # свыше 500 л.с.
+    (0, 90): 0,
+    (90, 150): 58,
+    (150, 200): 557,
+    (200, 300): 912,
+    (300, 400): 1555,
+    (400, 500): 1609,
+    (500, float('inf')): 1662
 }
 
 SITE_IMAGE_URL = "https://autozakaz-dv.ru/local/templates/autozakaz/images/logo_header.png"
@@ -200,9 +184,8 @@ def get_currency_rates():
         today = datetime.now().strftime("%d/%m/%Y")
         params = {'date_req': today}
         
-        # Добавлен User-Agent для предотвращения блокировки
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
         }
         
         response = requests.get(url, params=params, headers=headers, timeout=15)
@@ -247,12 +230,11 @@ def format_engine_volume(volume_cc):
 def format_number(value):
     return "{0:,}".format(int(value)).replace(",", ".")
 
-# Расчет пошлины (исправлено для электромобилей)
+# Расчет пошлины
 def calculate_duty(price_rub: float, age_months: int, engine_volume_cc: int, 
                   is_individual: bool, eur_rate: float, is_electric: bool,
                   is_personal_use: bool) -> float:
     
-    # Для электромобилей всегда 15% пошлина
     if is_electric:
         return price_rub * ELECTRIC_DUTY_RATE
     
@@ -349,7 +331,6 @@ def calculate_excise(engine_power_hp: int) -> float:
     return engine_power_hp * BASE_EXCISE_RATE
 
 def calculate_excise_electric(power_hp: float) -> float:
-    """Расчет акциза для электромобилей по мощности в л.с."""
     for (min_power, max_power), rate in EXCISE_RATES_ELECTRIC.items():
         if min_power < power_hp <= max_power:
             return power_hp * rate
@@ -474,7 +455,6 @@ async def year_month_handler(message: types.Message, state: FSMContext):
             )
             return
         
-        # Очищаем ввод от лишних пробелов
         cleaned_input = message.text.strip().replace(' ', '')
         year, month = map(float, cleaned_input.split('.'))
         current_date = datetime.now()
@@ -559,7 +539,6 @@ async def engine_power_handler(message: types.Message, state: FSMContext):
             )
             return
         
-        # Принимаем float для поддержки дробных значений мощности
         power = float(message.text)
         if power <= 0: 
             await message.answer("❌ Ошибка! Мощность должна быть положительным числом.")
@@ -635,7 +614,6 @@ async def calculate_and_send_result(message: types.Message, state: FSMContext, d
     try:
         logger.info(f"Начало расчета для данных: {data}")
         
-        # Выполняем расчет стоимости
         rates = get_currency_rates()
         price_rub = data['price'] * rates['CNY']
         eur_rate = rates['EUR']
@@ -643,20 +621,16 @@ async def calculate_and_send_result(message: types.Message, state: FSMContext, d
         is_electric = data.get('engine_type') == "🔋 Электрический"
         engine_volume_cc = data.get('engine_volume_cc', 0) if not is_electric else 0
         
-        # Для электромобилей - конвертация кВт в л.с.
         if is_electric:
             power_kw = data.get('engine_power', 0)
             engine_power_hp = power_kw * 1.35962
             excise = calculate_excise_electric(engine_power_hp)
-            
-            # Определяем ставку акциза для вывода
             current_rate = 0
             for (min_power, max_power), rate in EXCISE_RATES_ELECTRIC.items():
                 if min_power < engine_power_hp <= max_power:
                     current_rate = rate
                     break
         else:
-            # Для ДВС - мощность в л.с.
             engine_power_hp = data.get('engine_power', 0)
             excise = calculate_excise(engine_power_hp) if not is_individual else 0
             current_rate = BASE_EXCISE_RATE
@@ -681,7 +655,6 @@ async def calculate_and_send_result(message: types.Message, state: FSMContext, d
             purpose = "личное пользование" if is_personal_use else "перепродажа"
             importer_type += f" ({purpose})"
         
-        # Формируем результат расчета
         result = (
             f"📊 <b>Результат расчета</b> (актуально на {datetime.now().strftime('%d.%m.%Y')}):\n\n"
             f"💰 <b>Стоимость авто:</b> {format_number(data['price'])} CNY ({format_number(price_rub)} руб.)\n"
@@ -692,7 +665,7 @@ async def calculate_and_send_result(message: types.Message, state: FSMContext, d
         
         if data['engine_type'] in ["🛢️ Бензиновый", "⛽ Дизельный"]:
             result += f"🔧 <b>Объем двигателя:</b> {format_engine_volume(engine_volume_cc)}\n"
-            result += f"⚡ <b>Мощность двигателя:</b> {int(round(data.get('engine_power', 0)))} л.с.\n"
+            result += f"⚡ <b>Мощность двигателя:</b> {int(round(data.get('engine_power', 0))} л.с.\n"
         else:
             result += f"⚡ <b>Мощность двигателя:</b> {data.get('engine_power', 0)} кВт ({engine_power_hp:.1f} л.с.)\n"
         
@@ -721,7 +694,6 @@ async def calculate_and_send_result(message: types.Message, state: FSMContext, d
             f"<a href='{GUAZI_URL}'>🔍 Поиск авто на Guazi.com</a>"
         )
         
-        # Обновленное примечание для электромобилей
         if is_electric:
             result += "\n\nℹ️ <i>Для электромобилей: пошлина 15%, акциз по мощности, НДС 20%</i>"
             if engine_power_hp <= 90:
@@ -729,7 +701,6 @@ async def calculate_and_send_result(message: types.Message, state: FSMContext, d
         elif not is_individual:
             result += "\n\nℹ️ <i>Для ДВС юридических лиц: учтены пошлина, акциз, НДС и утильсбор</i>"
         
-        # Отправляем текстовый результат
         try:
             if len(result) > 4096:
                 parts = [result[i:i+4096] for i in range(0, len(result), 4096)]
@@ -740,9 +711,7 @@ async def calculate_and_send_result(message: types.Message, state: FSMContext, d
                 await message.answer(result, parse_mode="HTML", reply_markup=main_menu())
         except Exception as text_error:
             logger.error(f"Ошибка при отправке текста: {text_error}", exc_info=True)
-            # Не прерываем выполнение, просто логируем
         
-        # Отправляем фото (не критично, если не получится)
         try:
             site_info = (
                 "С уважением, Авто Заказ ДВ\n\n"
@@ -758,15 +727,12 @@ async def calculate_and_send_result(message: types.Message, state: FSMContext, d
             )
         except Exception as photo_error:
             logger.error(f"Ошибка при отправке фото: {photo_error}", exc_info=True)
-            # В случае ошибки отправляем текстовую версию
             await message.answer(site_info, parse_mode="HTML")
         
         logger.info("Расчет успешно завершен и отправлен")
-        # Очищаем состояние
         await state.clear()
         
     except Exception as e:
-        # Обрабатываем только реальные ошибки расчета
         logger.exception(f"Критическая ошибка при расчете стоимости")
         logger.error(f"Данные расчета: {data}")
         await message.answer("⚠️ Произошла ошибка при расчете стоимости. Пожалуйста, попробуйте еще раз.")
@@ -871,34 +837,42 @@ async def start_webapp():
 
 # Запуск приложения
 async def main():
-    # Регистрация обработчика ошибок
     dp.errors.register(global_error_handler)
     
-    # Запуск HTTP сервера
-    asyncio.create_task(start_webapp())
+    try:
+        await start_webapp()
+        logger.info("🟢 HTTP-сервер успешно запущен")
+    except Exception as e:
+        logger.error(f"🔴 Ошибка запуска HTTP-сервера: {e}")
     
-    # Запуск бота
-    logger.info("Бот запускается...")
-    await dp.start_polling(bot)
+    try:
+        logger.info("🚀 Запуск бота...")
+        await dp.start_polling(bot)
+    except Exception as e:
+        logger.critical(f"💥 КРИТИЧЕСКАЯ ОШИБКА: {e}")
+        logger.exception("Трассировка ошибки")
 
 if __name__ == "__main__":
     print("\n" + "="*60)
-    print("ДИАГНОСТИКА УСТАНОВКИ:")
+    print("ФИНАЛЬНАЯ ПРОВЕРКА СИСТЕМЫ:")
+    print(f"Python: {sys.version}")
+    print(f"Путь к интерпретатору: {sys.executable}")
     
     try:
         import requests
         print(f"✅ requests: {requests.__version__}")
         
-        # Тестовый запрос
-        print("\nТЕСТ СЕТИ:")
+        print("\n🔧 ПОСЛЕДНИЙ ТЕСТ СЕТИ:")
         r = requests.get("https://httpbin.org/get", timeout=10)
         print(f"HTTP-статус: {r.status_code}")
+        print(f"IP-адрес: {r.json().get('origin', 'неизвестен')}")
         
     except Exception as e:
-        print(f"❌ ОШИБКА: {str(e)}")
+        print(f"❌ ФАТАЛЬНАЯ ОШИБКА: {str(e)}")
         import traceback
         traceback.print_exc()
     
-    print("="*60 + "\n")
-
-
+    print("="*60)
+    print("⚡ ВСЕ СИСТЕМЫ ГОТОВЫ К РАБОТЕ\n")
+    
+    asyncio.run(main())
