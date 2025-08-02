@@ -1,13 +1,38 @@
-print("="*60)
-print("ПРОВЕРКА УСТАНОВКИ REQUESTS")
+import logging
+import sys
+
+# Настройка логирования
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+logger = logging.getLogger(__name__)
+
+# Диагностика окружения
+logger.info("=" * 60)
+logger.info("🚀 ЗАПУСК БОТА")
+logger.info(f"Версия Python: {sys.version}")
+logger.info(f"Путь к Python: {sys.executable}")
+
 try:
     import requests
-    print(f"✅ requests УСТАНОВЛЕНА, версия: {requests.__version__}")
-except ImportError:
-    print("❌ CRITICAL ERROR: requests НЕ УСТАНОВЛЕН!")
-print("="*60)
-print("ЗАПУСК БОТА\n")
-import sys
+    logger.info(f"✅ requests установлена, версия: {requests.__version__}")
+    
+    # Проверка работы сети
+    response = requests.get("https://httpbin.org/get", timeout=10)
+    logger.info(f"Статус тестового запроса: {response.status_code}")
+    
+except Exception as e:
+    logger.error(f"❌ ОШИБКА: {str(e)}", exc_info=True)
+
+logger.info("=" * 60)
+
+# Остальной импорт
+from aiogram import Bot, Dispatcher, types
+# ... остальной код без изменений ...
 import requests
 print("Python version:", sys.version)
 print("Requests version:", requests.__version__)
@@ -863,3 +888,4 @@ if __name__ == "__main__":
         traceback.print_exc()
     
     print("="*60 + "\n")
+
