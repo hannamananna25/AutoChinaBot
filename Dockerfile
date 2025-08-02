@@ -1,16 +1,18 @@
 FROM python:3.11-slim
 
 # Установка системных зависимостей
-RUN apt-get update && apt-get install -y gcc python3-dev libffi-dev libssl-dev
+RUN apt-get update && apt-get install -y gcc libffi-dev git
 
-# Рабочая директория
+# Копируем только requirements.txt сначала для кэширования
 WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Копирование всех файлов
+# Явная установка requests на случай проблем
+RUN pip install --no-cache-dir requests==2.31.0
+
+# Копируем остальные файлы
 COPY . .
 
-# Установка прав на скрипт
-RUN chmod +x start.sh
-
-# Установка зависимостей и запуск бота
-CMD ["./start.sh"]
+# Запускаем скрипт
+CMD ["python", "bot.py"]
