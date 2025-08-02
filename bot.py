@@ -1,19 +1,31 @@
-import logging
 import sys
+import subprocess
 
-# Настройка логирования
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.StreamHandler(sys.stdout)
-    ]
-)
-logger = logging.getLogger(__name__)
+print("="*60)
+print("ПРОВЕРКА УСТАНОВКИ ЗАВИСИМОСТЕЙ")
 
-# Диагностика окружения
-logger.info("=" * 60)
-logger.info("🚀 ЗАПУСК БОТА")
+# Принудительно устанавливаем requests, если отсутствует
+try:
+    import requests
+    print(f"✅ requests установлена, версия: {requests.__version__}")
+except ImportError:
+    print("⚠️ requests не установлена, пытаемся установить...")
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "requests==2.31.0"])
+    import requests
+    print(f"✅ requests успешно установлена, версия: {requests.__version__}")
+
+# Проверка работы сети
+print("\nТЕСТ СЕТИ:")
+try:
+    response = requests.get("https://httpbin.org/get", timeout=10)
+    print(f"HTTP-статус: {response.status_code}")
+except Exception as e:
+    print(f"❌ Ошибка сети: {str(e)}")
+
+print("="*60)
+print("ЗАПУСК БОТА\n")
+
+# Остальной код бота без изменений...
 logger.info(f"Версия Python: {sys.version}")
 logger.info(f"Путь к Python: {sys.executable}")
 
@@ -888,4 +900,5 @@ if __name__ == "__main__":
         traceback.print_exc()
     
     print("="*60 + "\n")
+
 
