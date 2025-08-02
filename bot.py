@@ -73,22 +73,18 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Загрузка переменных окружения
-load_dotenv()
+# ===== БЕЗОПАСНАЯ ЗАГРУЗКА ТОКЕНА =====
 TOKEN = os.getenv("BOT_TOKEN")
 
-# ======= ДИАГНОСТИКА ТОКЕНА ======= (начало)
-print(f"Тип токена: {type(TOKEN)}")
-print(f"Значение токена: {TOKEN}")
+# Проверка токена
 if not TOKEN:
-    print("❌ КРИТИЧЕСКАЯ ОШИБКА: Токен не загружен!")
-    logger.error("❌ ОШИБКА: Не удалось загрузить BOT_TOKEN из .env файла")
+    logger.error("❌ ОШИБКА: Токен бота не загружен из переменных окружения!")
+    print("❌ ОШИБКА: Токен бота не загружен из переменных окружения!")
     exit(1)
-else:
-    print("✅ Токен успешно загружен")
-# ======= ДИАГНОСТИКА ТОКЕНА ======= (конец)
 
-# Константы (ИСПРАВЛЕНЫ ОПЕЧАТКИ)
+print(f"✅ Токен успешно загружен из переменных окружения")
+
+# Константы
 DELIVERY_COST = 165000
 CUSTOMS_CLEARANCE = 80000
 SITE_URL = "https://autozakaz-dv.ru/"
@@ -253,7 +249,7 @@ def format_engine_volume(volume_cc):
 def format_number(value):
     return "{0:,}".format(int(value)).replace(",", ".")
 
-# Расчет пошлины (ФОРМУЛЫ СОХРАНЕНЫ БЕЗ ИЗМЕНЕНИЙ)
+# Расчет пошлины
 def calculate_duty(price_rub: float, age_months: int, engine_volume_cc: int, 
                   is_individual: bool, eur_rate: float, is_electric: bool,
                   is_personal_use: bool) -> float:
@@ -320,7 +316,7 @@ def calculate_duty(price_rub: float, age_months: int, engine_volume_cc: int,
             eur_per_cc = 5.7
         return eur_per_cc * engine_volume_cc * eur_rate
 
-# Расчет утильсбора (ФОРМУЛЫ СОХРАНЕНЫ БЕЗ ИЗМЕНЕНИЙ)
+# Расчет утильсбора
 def calculate_recycling(age_months: int, engine_volume_cc: int, is_individual: bool, 
                        is_personal_use: bool, is_electric: bool) -> float:
     if is_electric:
@@ -688,8 +684,7 @@ async def calculate_and_send_result(message: types.Message, state: FSMContext, d
         
         if data['engine_type'] in ["🛢️ Бензиновый", "⛽ Дизельный"]:
             result += f"🔧 <b>Объем двигателя:</b> {format_engine_volume(engine_volume_cc)}\n"
-            # ИСПРАВЛЕНА ОШИБКА В F-СТРОКЕ:
-            result += f"⚡ <b>Мощность двигателя:</b> {int(round(data.get('engine_power', 0)))} л.с.\n"
+            result += f"⚡ <b>Мощность двигателя:</b> {int(round(data.get('engine_power', 0))} л.с.\n"
         else:
             result += f"⚡ <b>Мощность двигателя:</b> {data.get('engine_power', 0)} кВт ({engine_power_hp:.1f} л.с.)\n"
         
@@ -900,6 +895,3 @@ if __name__ == "__main__":
     print("⚡ ВСЕ СИСТЕМЫ ГОТОВЫ К РАБОТЕ\n")
     
     asyncio.run(main())
-
-
-
