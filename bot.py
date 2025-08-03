@@ -831,31 +831,12 @@ async def global_error_handler(update: types.Update, exception: Exception):
     logger.error(f"Глобальная ошибка: {exception}", exc_info=True)
     return True
 
-# HTTP сервер
-async def health_check(request):
-    return web.Response(text="Bot is running")
-
-app = web.Application()
-app.add_routes([web.get('/', health_check)])
-
-async def start_webapp():
-    runner = web.AppRunner(app)
-    await runner.setup()
-    site = web.TCPSite(runner, '0.0.0.0', 8000)
-    await site.start()
-    logger.info("HTTP server started on port 8000")
-
 # Запуск приложения
 async def main():
-    # Регистрация обработчика ошибок
     dp.errors.register(global_error_handler)
-    
-    # Запуск HTTP сервера
-    asyncio.create_task(start_webapp())
-    
-    # Запуск бота
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
+    # Упрощенный запуск
     logger.info("Starting bot...")
     asyncio.run(main())
