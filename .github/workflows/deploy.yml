@@ -24,28 +24,30 @@ jobs:
           rm: true
           overwrite: true
           
-      - name: Deploy with Docker
+      - name: Stop and clean old containers
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.USERNAME }}
+          script: |
+            docker stop $(docker ps -q) || true
+            docker rm $(docker ps -a -q) || true
+            docker rmi $(docker images -q) -f || true
+            docker system prune -af
+            
+      - name: Build and run new container
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.USERNAME }}
           script: |
             cd /root/AutoChinaBot
-            
-            # Остановить и удалить старый контейнер
-            docker stop autochinabot || true
-            docker rm autochinabot || true
-            
-            # Построить новый образ
             docker build -t autochinabot .
-            
-            # Запустить контейнер
             docker run -d \
               --name autochinabot \
               --restart always \
               -e BOT_TOKEN=$BOT_TOKEN \
               autochinabot
-            
-            echo "Deployment successful!"
+            docker logs --tail 50 autochinabot
           env:
             BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
