@@ -1,13 +1,17 @@
-FROM python:3.11
+FROM python:3.11-slim
 
 WORKDIR /app
 
-# Копируем зависимости первыми для кэширования
+# Установка зависимостей для сборки
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libxml2-dev \
+    libxslt-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Копируем ВСЕ файлы включая .env
 COPY . .
 
-# Принудительно указываем путь к .env
-CMD ["python", "-c", "from dotenv import load_dotenv; load_dotenv('/app/.env'); import bot"]
+CMD ["python", "bot.py"]
