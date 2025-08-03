@@ -1,16 +1,19 @@
-FROM python:3.11-slim
+FROM python:3.11-bookworm
 
 WORKDIR /app
 
-# Установка зависимостей для сборки
+# Установка зависимостей
 RUN apt-get update && apt-get install -y \
     build-essential \
+    libssl-dev \
+    libffi-dev \
     libxml2-dev \
     libxslt-dev \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
