@@ -1,3 +1,11 @@
+- name: Test SSH connection
+  uses: appleboy/ssh-action@master
+  with:
+    host: ${{ secrets.SERVER_IP }}
+    username: ${{ secrets.USERNAME }}
+    key: ${{ secrets.SSH_KEY }}
+    script: echo "Connection successful!"
+    
 name: Deploy Bot
 
 on:
