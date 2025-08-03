@@ -22,13 +22,30 @@ jobs:
           source: "./"
           target: "/root/AutoChinaBot"
           rm: true
-          overwrite: true  # Добавлено для принудительной перезаписи
+          overwrite: true
           
-      - name: Verify deployment
+      - name: Deploy with Docker
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.USERNAME }}
           script: |
-            ls -la /root/AutoChinaBot
-            echo "Files copied successfully!"
+            cd /root/AutoChinaBot
+            
+            # Остановить и удалить старый контейнер
+            docker stop autochinabot || true
+            docker rm autochinabot || true
+            
+            # Построить новый образ
+            docker build -t autochinabot .
+            
+            # Запустить контейнер
+            docker run -d \
+              --name autochinabot \
+              --restart always \
+              -e BOT_TOKEN=$BOT_TOKEN \
+              autochinabot
+            
+            echo "Deployment successful!"
+          env:
+            BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
