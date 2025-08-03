@@ -1,66 +1,25 @@
-import sys
-import subprocess
-import os
 import logging
+import sys
 import asyncio
-import re
-from datetime import datetime
-from xml.etree import ElementTree as ET
-
-print("=" * 60)
-print("🚀 СИСТЕМНАЯ ДИАГНОСТИКА ПРИ ЗАПУСКЕ")
-
-# 1. Проверка версии Python
-print(f"\n🐍 Версия Python: {sys.version}")
-print(f"📂 Рабочая директория: {os.getcwd()}")
-
-# 2. Проверка установки pip
-try:
-    import pip
-    print(f"✅ pip установлен, версия: {pip.__version__}")
-except ImportError:
-    print("❌ pip не установлен! Попытка установки...")
-    subprocess.check_call([sys.executable, "-m", "ensurepip", "--default-pip"])
-
-# 3. Проверка requests
-try:
-    import requests
-    print(f"✅ requests установлена, версия: {requests.__version__}")
-except ImportError:
-    print("❌ requests не установлена! Выполняю принудительную установку...")
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "requests==2.31.0"])
-    import requests
-    print(f"✅ requests успешно установлена, версия: {requests.__version__}")
-
-# 4. Проверка сети
-print("\n🌐 ТЕСТ СЕТЕВОГО ПОДКЛЮЧЕНИЯ:")
-try:
-    response = requests.get("https://httpbin.org/get", timeout=10)
-    print(f"Статус: {response.status_code}")
-    print(f"IP-адрес: {response.json().get('origin', 'неизвестен')}")
-except Exception as e:
-    print(f"❌ СЕТЕВАЯ ОШИБКА: {str(e)}")
-    print("Проверьте подключение контейнера к интернету")
-
-print("=" * 60)
-print("⚡ ЗАПУСК БОТА\n")
-
-# Основные импорты
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
-from aiogram.types import (
-    ReplyKeyboardMarkup, 
-    KeyboardButton, 
-    ReplyKeyboardRemove,
-    InlineKeyboardMarkup, 
-    InlineKeyboardButton
-)
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 from aiogram.enums import ChatMemberStatus
-from dotenv import load_dotenv
+from datetime import datetime
+import requests
 from bs4 import BeautifulSoup
+from dotenv import load_dotenv
+import os
+import re
+from xml.etree import ElementTree as ET
 from aiohttp import web
+
+# ===== КРИТИЧЕСКИЕ ИСПРАВЛЕНИЯ =====
+from aiogram.fsm.middleware import SimpleMiddleware
+from aiogram.fsm.storage.memory import MemoryStorage
+# ====================================
 
 # Настройка логирования
 logging.basicConfig(
@@ -73,17 +32,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# ===== БЕЗОПАСНАЯ ЗАГРУЗКА ТОКЕНА =====
-load_dotenv()  # Загружаем .env файл, если он есть
+# Загрузка переменных окружения
+load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")
-
-# Проверка токена
-if not TOKEN:
-    logger.error("❌ ОШИБКА: Токен бота не загружен!")
-    print("❌ ОШИБКА: Токен бота не загружен!")
-    exit(1)
-
-print(f"✅ Токен успешно загружен")
 
 # Константы
 DELIVERY_COST = 165000
@@ -97,28 +48,33 @@ BASE_EXCISE_RATE = 61
 CHANNEL_ID = -1002265390233
 
 # Константы для электромобилей
-ELECTRIC_DUTY_RATE = 0.15
+ELECTRIC_DUTY_RATE = 0.15  # Всегда 15% для электромобилей
 BASE_RECYCLING_FEE_ELECTRIC_INDIVIDUAL_NEW = 3400
 BASE_RECYCLING_FEE_ELECTRIC_INDIVIDUAL_OLD = 5200
 BASE_RECYCLING_FEE_ELECTRIC_LEGAL_NEW = 667400
 BASE_RECYCLING_FEE_ELECTRIC_LEGAL_OLD = 1174000
 
-# Актуальные ставки акциза для электромобилей
+# Актуальные ставки акциза для электромобилей (руб/л.с.) на 2025 год
 EXCISE_RATES_ELECTRIC = {
-    (0, 90): 0,
-    (90, 150): 58,
-    (150, 200): 557,
-    (200, 300): 912,
-    (300, 400): 1555,
-    (400, 500): 1609,
-    (500, float('inf')): 1662
+    (0, 90): 0,          # до 90 л.с. - нулевой акциз
+    (90, 150): 58,       # 90-150 л.с.
+    (150, 200): 557,     # 150-200 л.с.
+    (200, 300): 912,     # 200-300 л.с.
+    (300, 400): 1555,    # 300-400 л.с.
+    (400, 500): 1609,    # 400-500 л.с.
+    (500, float('inf')): 1662  # свыше 500 л.с.
 }
 
 SITE_IMAGE_URL = "https://autozakaz-dv.ru/local/templates/autozakaz/images/logo_header.png"
 
-# Инициализация бота
+# Инициализация бота с хранилищем состояний
+storage = MemoryStorage()
 bot = Bot(token=TOKEN)
-dp = Dispatcher()
+dp = Dispatcher(storage=storage)
+
+# ===== КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ =====
+dp.message.middleware(SimpleMiddleware())
+# ====================================
 
 # Состояния бота
 class Form(StatesGroup):
@@ -199,16 +155,11 @@ async def is_subscribed(user_id: int) -> bool:
 # Получение курсов валют
 def get_currency_rates():
     try:
-        logger.info("Запрос курсов валют к ЦБ РФ")
         url = 'https://www.cbr.ru/scripts/XML_daily.asp'
         today = datetime.now().strftime("%d/%m/%Y")
         params = {'date_req': today}
         
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
-        }
-        
-        response = requests.get(url, params=params, headers=headers, timeout=15)
+        response = requests.get(url, params=params, timeout=15)
         response.raise_for_status()
         
         root = ET.fromstring(response.content)
@@ -227,11 +178,10 @@ def get_currency_rates():
                 rates[currency] = default_rates[currency]
                 logger.warning(f"Курс {currency} не найден, использовано значение по умолчанию")
         
-        logger.info(f"Получены курсы: USD={rates['USD']}, EUR={rates['EUR']}, CNY={rates['CNY']}")
         return rates
         
     except Exception as e:
-        logger.exception("Ошибка получения курсов")
+        logger.error(f"Ошибка получения курсов: {e}", exc_info=True)
         return {'USD': 80.0, 'EUR': 90.0, 'CNY': 11.0}
 
 def parse_engine_volume(input_str):
@@ -250,11 +200,12 @@ def format_engine_volume(volume_cc):
 def format_number(value):
     return "{0:,}".format(int(value)).replace(",", ".")
 
-# Расчет пошлины
+# Расчет пошлины (исправлено для электромобилей)
 def calculate_duty(price_rub: float, age_months: int, engine_volume_cc: int, 
                   is_individual: bool, eur_rate: float, is_electric: bool,
                   is_personal_use: bool) -> float:
     
+    # Для электромобилей всегда 15% пошлина
     if is_electric:
         return price_rub * ELECTRIC_DUTY_RATE
     
@@ -351,10 +302,19 @@ def calculate_excise(engine_power_hp: int) -> float:
     return engine_power_hp * BASE_EXCISE_RATE
 
 def calculate_excise_electric(power_hp: float) -> float:
+    """Расчет акциза для электромобилей по мощности в л.с."""
     for (min_power, max_power), rate in EXCISE_RATES_ELECTRIC.items():
         if min_power < power_hp <= max_power:
             return power_hp * rate
     return 0
+
+# ===== ВАЖНОЕ ИЗМЕНЕНИЕ: Функция сброса состояния =====
+async def reset_state(user_id: int):
+    """Сбрасывает состояние для указанного пользователя"""
+    from aiogram.fsm.storage.memory import MemoryStorage
+    storage = MemoryStorage()
+    await storage.set_state(chat=user_id, user=user_id, state=None)
+# =====================================================
 
 # Обработчики сообщений
 @dp.message(Command("start"))
@@ -422,6 +382,12 @@ async def start_command_handler(message: types.Message):
 @dp.message(lambda m: m.text == "🚗 Рассчитать стоимость авто")
 async def calculate_handler(message: types.Message, state: FSMContext):
     try:
+        # ===== КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ =====
+        # Принудительный сброс состояния перед началом расчета
+        await reset_state(message.from_user.id)
+        logger.info(f"Состояние сброшено для пользователя: {message.from_user.id}")
+        # ====================================
+        
         if not await is_subscribed(message.from_user.id):
             await message.answer(
                 "📢 Для использования калькулятора необходимо подписаться на наш канал!\n"
@@ -431,10 +397,13 @@ async def calculate_handler(message: types.Message, state: FSMContext):
             return
         
         await state.set_state(Form.price)
+        await asyncio.sleep(0.1)  # Небольшая задержка для стабильности
+        
         await message.answer(
             "💰 Введите стоимость автомобиля в CNY (например 150000):",
             reply_markup=ReplyKeyboardRemove()
         )
+        logger.info(f"Начат расчет для пользователя: {message.from_user.id}")
     except Exception as e:
         logger.error(f"Ошибка в calculate_handler: {e}", exc_info=True)
         await message.answer("⚠️ Произошла ошибка. Пожалуйста, попробуйте позже.")
@@ -457,6 +426,8 @@ async def price_handler(message: types.Message, state: FSMContext):
             
         await state.update_data(price=price)
         await state.set_state(Form.year_month)
+        await asyncio.sleep(0.1)  # Небольшая задержка для стабильности
+        
         await message.answer("📅 Введите год и месяц выпуска (формат: ГГГГ.ММ, например: 2021.05):")
     except ValueError:
         await message.answer("❌ Ошибка! Введите корректную сумму (например: 86000)")
@@ -475,8 +446,7 @@ async def year_month_handler(message: types.Message, state: FSMContext):
             )
             return
         
-        cleaned_input = message.text.strip().replace(' ', '')
-        year, month = map(float, cleaned_input.split('.'))
+        year, month = map(float, message.text.split('.'))
         current_date = datetime.now()
         
         if not (1990 <= year <= current_date.year) or not (1 <= month <= 12):
@@ -488,6 +458,8 @@ async def year_month_handler(message: types.Message, state: FSMContext):
         
         await state.update_data(year_month=(year, month), age_months=age_months)
         await state.set_state(Form.engine_type)
+        await asyncio.sleep(0.1)  # Небольшая задержка для стабильности
+        
         await message.answer("🔧 Выберите тип двигателя:", reply_markup=engine_type_keyboard())
     except Exception as e:
         logger.error(f"Ошибка в year_month_handler: {e}", exc_info=True)
@@ -515,9 +487,11 @@ async def engine_type_handler(message: types.Message, state: FSMContext):
         
         if message.text in ["🛢️ Бензиновый", "⛽ Дизельный"]:
             await state.set_state(Form.engine_volume)
+            await asyncio.sleep(0.1)  # Небольшая задержка для стабильности
             await message.answer("⚙️ Введите объем двигателя в кубических сантиметрах (например: 2000) или в литрах (например: 2.0):")
         else:
             await state.set_state(Form.engine_power)
+            await asyncio.sleep(0.1)  # Небольшая задержка для стабильности
             await message.answer("⚡ Введите мощность двигателя в кВт (например: 120):")
     except Exception as e:
         logger.error(f"Ошибка в engine_type_handler: {e}", exc_info=True)
@@ -542,6 +516,8 @@ async def engine_volume_handler(message: types.Message, state: FSMContext):
         
         await state.update_data(engine_volume_cc=volume_cc)
         await state.set_state(Form.engine_power)
+        await asyncio.sleep(0.1)  # Небольшая задержка для стабильности
+        
         await message.answer("⚙️ Введите мощность двигателя в л.с. (например: 150):")
     except Exception as e:
         logger.error(f"Ошибка в engine_volume_handler: {e}", exc_info=True)
@@ -559,6 +535,7 @@ async def engine_power_handler(message: types.Message, state: FSMContext):
             )
             return
         
+        # Принимаем float для поддержки дробных значений мощности
         power = float(message.text)
         if power <= 0: 
             await message.answer("❌ Ошибка! Мощность должна быть положительным числом.")
@@ -566,6 +543,8 @@ async def engine_power_handler(message: types.Message, state: FSMContext):
             
         await state.update_data(engine_power=power)
         await state.set_state(Form.importer_type)
+        await asyncio.sleep(0.1)  # Небольшая задержка для стабильности
+        
         await message.answer("👤 Выберите тип импортера:", reply_markup=importer_type_keyboard())
     except ValueError:
         data = await state.get_data()
@@ -597,6 +576,7 @@ async def importer_type_handler(message: types.Message, state: FSMContext):
         
         if is_individual:
             await state.set_state(Form.personal_use)
+            await asyncio.sleep(0.1)  # Небольшая задержка для стабильности
             await message.answer("🎯 Выберите цель использования автомобиля:", reply_markup=personal_use_keyboard())
         else:
             data = await state.get_data()
@@ -632,8 +612,7 @@ async def personal_use_handler(message: types.Message, state: FSMContext):
 
 async def calculate_and_send_result(message: types.Message, state: FSMContext, data: dict, is_individual: bool, is_personal_use: bool):
     try:
-        logger.info(f"Начало расчета для данных: {data}")
-        
+        # Выполняем расчет стоимости
         rates = get_currency_rates()
         price_rub = data['price'] * rates['CNY']
         eur_rate = rates['EUR']
@@ -641,16 +620,20 @@ async def calculate_and_send_result(message: types.Message, state: FSMContext, d
         is_electric = data.get('engine_type') == "🔋 Электрический"
         engine_volume_cc = data.get('engine_volume_cc', 0) if not is_electric else 0
         
+        # Для электромобилей - конвертация кВт в л.с.
         if is_electric:
             power_kw = data.get('engine_power', 0)
             engine_power_hp = power_kw * 1.35962
             excise = calculate_excise_electric(engine_power_hp)
+            
+            # Определяем ставку акциза для вывода
             current_rate = 0
             for (min_power, max_power), rate in EXCISE_RATES_ELECTRIC.items():
                 if min_power < engine_power_hp <= max_power:
                     current_rate = rate
                     break
         else:
+            # Для ДВС - мощность в л.с.
             engine_power_hp = data.get('engine_power', 0)
             excise = calculate_excise(engine_power_hp) if not is_individual else 0
             current_rate = BASE_EXCISE_RATE
@@ -675,6 +658,7 @@ async def calculate_and_send_result(message: types.Message, state: FSMContext, d
             purpose = "личное пользование" if is_personal_use else "перепродажа"
             importer_type += f" ({purpose})"
         
+        # Формируем результат расчета
         result = (
             f"📊 <b>Результат расчета</b> (актуально на {datetime.now().strftime('%d.%m.%Y')}):\n\n"
             f"💰 <b>Стоимость авто:</b> {format_number(data['price'])} CNY ({format_number(price_rub)} руб.)\n"
@@ -685,7 +669,7 @@ async def calculate_and_send_result(message: types.Message, state: FSMContext, d
         
         if data['engine_type'] in ["🛢️ Бензиновый", "⛽ Дизельный"]:
             result += f"🔧 <b>Объем двигателя:</b> {format_engine_volume(engine_volume_cc)}\n"
-            result += f"⚡ <b>Мощность двигателя:</b> {int(round(data.get('engine_power', 0))} л.с.\n"
+            result += f"⚡ <b>Мощность двигателя:</b> {int(round(data.get('engine_power', 0)))} л.с.\n"
         else:
             result += f"⚡ <b>Мощность двигателя:</b> {data.get('engine_power', 0)} кВт ({engine_power_hp:.1f} л.с.)\n"
         
@@ -714,6 +698,7 @@ async def calculate_and_send_result(message: types.Message, state: FSMContext, d
             f"<a href='{GUAZI_URL}'>🔍 Поиск авто на Guazi.com</a>"
         )
         
+        # Обновленное примечание для электромобилей
         if is_electric:
             result += "\n\nℹ️ <i>Для электромобилей: пошлина 15%, акциз по мощности, НДС 20%</i>"
             if engine_power_hp <= 90:
@@ -721,6 +706,7 @@ async def calculate_and_send_result(message: types.Message, state: FSMContext, d
         elif not is_individual:
             result += "\n\nℹ️ <i>Для ДВС юридических лиц: учтены пошлина, акциз, НДС и утильсбор</i>"
         
+        # Отправляем текстовый результат
         try:
             if len(result) > 4096:
                 parts = [result[i:i+4096] for i in range(0, len(result), 4096)]
@@ -731,7 +717,9 @@ async def calculate_and_send_result(message: types.Message, state: FSMContext, d
                 await message.answer(result, parse_mode="HTML", reply_markup=main_menu())
         except Exception as text_error:
             logger.error(f"Ошибка при отправке текста: {text_error}", exc_info=True)
+            # Не прерываем выполнение, просто логируем
         
+        # Отправляем фото (не критично, если не получится)
         try:
             site_info = (
                 "С уважением, Авто Заказ ДВ\n\n"
@@ -747,13 +735,15 @@ async def calculate_and_send_result(message: types.Message, state: FSMContext, d
             )
         except Exception as photo_error:
             logger.error(f"Ошибка при отправке фото: {photo_error}", exc_info=True)
+            # В случае ошибки отправляем текстовую версию
             await message.answer(site_info, parse_mode="HTML")
         
-        logger.info("Расчет успешно завершен и отправлен")
+        # Очищаем состояние
         await state.clear()
         
     except Exception as e:
-        logger.exception(f"Критическая ошибка при расчете стоимости")
+        # Обрабатываем только реальные ошибки расчета
+        logger.error(f"Критическая ошибка при расчете стоимости: {e}", exc_info=True)
         logger.error(f"Данные расчета: {data}")
         await message.answer("⚠️ Произошла ошибка при расчете стоимости. Пожалуйста, попробуйте еще раз.")
         await state.clear()
@@ -857,43 +847,15 @@ async def start_webapp():
 
 # Запуск приложения
 async def main():
+    # Регистрация обработчика ошибок
     dp.errors.register(global_error_handler)
     
-    try:
-        await start_webapp()
-        logger.info("🟢 HTTP-сервер успешно запущен")
-    except Exception as e:
-        logger.error(f"🔴 Ошибка запуска HTTP-сервера: {e}")
+    # Запуск HTTP сервера
+    asyncio.create_task(start_webapp())
     
-    try:
-        logger.info("🚀 Запуск бота...")
-        await dp.start_polling(bot)
-    except Exception as e:
-        logger.critical(f"💥 КРИТИЧЕСКАЯ ОШИБКА: {e}")
-        logger.exception("Трассировка ошибки")
+    # Запуск бота
+    await dp.start_polling(bot)
 
 if __name__ == "__main__":
-    print("\n" + "="*60)
-    print("ФИНАЛЬНАЯ ПРОВЕРКА СИСТЕМЫ:")
-    print(f"Python: {sys.version}")
-    print(f"Путь к интерпретатору: {sys.executable}")
-    
-    try:
-        import requests
-        print(f"✅ requests: {requests.__version__}")
-        
-        print("\n🔧 ПОСЛЕДНИЙ ТЕСТ СЕТИ:")
-        r = requests.get("https://httpbin.org/get", timeout=10)
-        print(f"HTTP-статус: {r.status_code}")
-        print(f"IP-адрес: {r.json().get('origin', 'неизвестен')}")
-        
-    except Exception as e:
-        print(f"❌ ФАТАЛЬНАЯ ОШИБКА: {str(e)}")
-        import traceback
-        traceback.print_exc()
-    
-    print("="*60)
-    print("⚡ ВСЕ СИСТЕМЫ ГОТОВЫ К РАБОТЕ\n")
-    
+    logger.info("Starting bot...")
     asyncio.run(main())
-
