@@ -859,6 +859,14 @@ async def start_webapp():
 async def main():
     dp.errors.register(global_error_handler)
     
+    # ДОБАВЛЕНО: Очистка вебхуков перед запуском long-polling
+    try:
+        logger.info("🔄 Очистка старых вебхуков...")
+        await bot.delete_webhook()
+        logger.info("✅ Вебхуки успешно очищены")
+    except Exception as e:
+        logger.error(f"❌ Ошибка при очистке вебхуков: {e}")
+    
     try:
         await start_webapp()
         logger.info("🟢 HTTP-сервер успешно запущен")
