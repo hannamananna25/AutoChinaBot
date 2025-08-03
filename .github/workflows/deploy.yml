@@ -11,7 +11,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up SSH
+      - name: Setup SSH
         uses: webfactory/ssh-agent@v0.8.0
         with:
           ssh-private-key: ${{ secrets.SSH_KEY }}
@@ -21,22 +21,20 @@ jobs:
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.SSH_KEY }}
           source: "./"
           target: "/root/AutoChinaBot"
           rm: true
 
-      - name: Execute remote commands
+      - name: Install dependencies and restart service
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.SSH_KEY }}
           script: |
             cd /root/AutoChinaBot
+            python3.11 -m venv venv
             source venv/bin/activate
             pip install -r requirements.txt
             sudo systemctl daemon-reload
             sudo systemctl restart autochinabot
-            sleep 5
-            sudo systemctl status autochinabot
+            echo "Deployment successful!"
