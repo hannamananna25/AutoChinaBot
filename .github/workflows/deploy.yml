@@ -1,11 +1,3 @@
-- name: Test SSH connection
-  uses: appleboy/ssh-action@master
-  with:
-    host: ${{ secrets.SERVER_IP }}
-    username: ${{ secrets.USERNAME }}
-    key: ${{ secrets.SSH_KEY }}
-    script: echo "Connection successful!"
-    
 name: Deploy Bot
 
 on:
@@ -32,7 +24,6 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           source: "./"
           target: "/root/AutoChinaBot"
-          strip_components: 1
           rm: true
 
       - name: Execute remote commands
@@ -43,12 +34,9 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           script: |
             cd /root/AutoChinaBot
-            docker build --no-cache -t china-bot .
-            docker stop china-bot-container || true
-            docker rm china-bot-container || true
-            docker run -d --restart=always --name china-bot-container \
-              -e BOT_TOKEN=$BOT_TOKEN \
-              -p 8000:8000 \
-              china-bot
-          env:
-            BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+            source venv/bin/activate
+            pip install -r requirements.txt
+            sudo systemctl daemon-reload
+            sudo systemctl restart autochinabot
+            sleep 5
+            sudo systemctl status autochinabot
