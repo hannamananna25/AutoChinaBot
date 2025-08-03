@@ -1,14 +1,11 @@
-FROM python:3.11-bookworm
+FROM python:3.11-slim-bookworm
 
 WORKDIR /app
 
-# Установка зависимостей
+# Установка только runtime зависимостей (без инструментов сборки)
 RUN apt-get update && apt-get install -y \
-    build-essential \
-    libssl-dev \
-    libffi-dev \
-    libxml2-dev \
-    libxslt-dev \
+    libxml2 \
+    libxslt1.1 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
