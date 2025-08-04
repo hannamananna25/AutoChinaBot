@@ -675,51 +675,51 @@ async def calculate_and_send_result(message: types.Message, state: FSMContext, d
             purpose = "личное пользование" if is_personal_use else "перепродажа"
             importer_type += f" ({purpose})"
         
-        result = (
-            f"📊 <b>Результат расчета</b> (актуально на {datetime.now().strftime('%d.%m.%Y')}):\n\n"
-            f"💰 <b>Стоимость авто:</b> {format_number(data['price'])} CNY ({format_number(price_rub)} руб.)\n"
-            f"📈 <b>Курсы:</b> CNY: {rates['CNY']:.2f} руб., EUR: {rates['EUR']:.2f} руб.\n"
-            f"⏳ <b>Дата выпуска:</b> {data['year_month'][0]:.0f}.{data['year_month'][1]:.0f} ({age_str})\n"
-            f"🔋 <b>Тип двигателя:</b> {data['engine_type']}\n"
-        )
+       result = (
+    f"📊 <b>Результат расчета</b> (актуально на {datetime.now().strftime('%d.%m.%Y')}):\n\n"
+    f"💰 <b>Стоимость авто:</b> {format_number(data['price'])} CNY ({format_number(price_rub)} руб.)\n"
+    f"📈 <b>Курсы:</b> CNY: {rates['CNY']:.2f} руб., EUR: {rates['EUR']:.2f} руб.\n"
+    f"⏳ <b>Дата выпуска:</b> {data['year_month'][0]:.0f}.{data['year_month'][1]:.0f} ({age_str})\n"
+    f"🔋 <b>Тип двигателя:</b> {data['engine_type']}\n"
+)
+
+if data['engine_type'] in ["🛢️ Бензиновый", "⛽ Дизельный"]:
+    result += f"🔧 <b>Объем двигателя:</b> {format_engine_volume(engine_volume_cc)}\n"
+    result += f"⚡ <b>Мощность двигателя:</b> {int(round(data.get('engine_power', 0))} л.с.\n"
+else:
+    result += f"⚡ <b>Мощность двигателя:</b> {data.get('engine_power', 0)} кВт ({engine_power_hp:.1f} л.с.)\n"
+
+result += f"👤 <b>Импортер:</b> {importer_type}\n\n"
+result += f"📝 <b>Таможенные платежи:</b>\n"
+result += f"- Пошлина: {format_number(duty)} руб.\n"
+
+if excise > 0:
+    if is_electric:
+        result += f"- Акциз: {format_number(excise)} руб. ({current_rate} руб./л.с.)\n"
+    else:
+        result += f"- Акциз: {format_number(excise)} руб.\n"
+
+if vat > 0:
+    result += f"- НДС (20%): {format_number(vat)} руб.\n"
+
+result += f"- Утильсбор: {format_number(recycling)} руб.\n"
         
-        if data['engine_type'] in ["🛢️ Бензиновый", "⛽ Дизельный"]:
-            result += f"🔧 <b>Объем двигателя:</b> {format_engine_volume(engine_volume_cc)}\n"
-            result += f"⚡ <b>Мощность двигателя:</b> {int(round(data.get('engine_power', 0)))} л.с.\n"
-        else:
-            result += f"⚡ <b>Мощность двигателя:</b> {data.get('engine_power', 0)} кВт ({engine_power_hp:.1f} л.с.)\n"
-        
-        result += f"👤 <b>Импортер:</b> {importer_type}\n\n"
-        result += f"📝 <b>Таможенные платежи:</b>\n"
-        result += f"- Пошлина: {format_number(duty)} руб.\n"
-        
-        if excise > 0:
-            if is_electric:
-                result += f"- Акциз: {format_number(excise)} руб. ({current_rate} руб./л.с.)\n"
-            else:
-                result += f"- Акциз: {format_number(excise)} руб.\n"
-        
-        if vat > 0:
-            result += f"- НДС (20%): {format_number(vat)} руб.\n"
-        
-        result += f"- Утильсбор: {format_number(recycling)} руб.\n"
-        
-        result += (
-            f"\n🚚 <b>Дополнительно:</b>\n"
-            f"- Доставка до Уссурийска: {format_number(DELIVERY_COST)} руб.\n"
-            f"- Таможенное оформление: {format_number(CUSTOMS_CLEARANCE)} руб.\n\n"
-            f"💵 <b>ИТОГО к оплате:</b> {format_number(total)} руб.\n\n"
-            result += f"<a href='{SITE_URL}'>С уважением, Авто Заказ ДВ</a>\n\n"
-            result += f"<a href='{SITE_URL}'>autozakaz-dv.ru</a>\n"
-            result += f"<a href='{SITE_URL}'>Главная</a>"
-        )
-        
-        if is_electric:
-            result += "\n\nℹ️ <i>Для электромобилей: пошлина 15%, акциз по мощности, НДС 20%</i>"
-            if engine_power_hp <= 90:
-                result += " (акциз 0% для мощности до 90 л.с.)"
-        elif not is_individual:
-            result += "\n\nℹ️ <i>Для ДВС юридических лиц: учтены пошлина, акциз, НДС и утильсбор</i>"
+result += (
+    f"\n🚚 <b>Дополнительно:</b>\n"
+    f"- Доставка до Уссурийска: {format_number(DELIVERY_COST)} руб.\n"
+    f"- Таможенное оформление: {format_number(CUSTOMS_CLEARANCE)} руб.\n\n"
+    f"💵 <b>ИТОГО к оплате:</b> {format_number(total)} руб.\n\n"
+    f"<a href='{SITE_URL}'>С уважением, Авто Заказ ДВ</a>\n\n"
+    f"<a href='{SITE_URL}'>autozakaz-dv.ru</a>\n"
+    f"<a href='{SITE_URL}'>Главная</a>"
+)
+
+if is_electric:
+    result += "\n\nℹ️ <i>Для электромобилей: пошлина 15%, акциз по мощности, НДС 20%</i>"
+    if engine_power_hp <= 90:
+        result += " (акциз 0% для мощности до 90 л.с.)"
+elif not is_individual:
+    result += "\n\nℹ️ <i>Для ДВС юридических лиц: учтены пошлина, акциз, НДС и утильсбор</i>"
         
         try:
             if len(result) > 4096:
@@ -902,6 +902,7 @@ if __name__ == "__main__":
     print("⚡ ВСЕ СИСТЕМЫ ГОТОВЫ К РАБОТЕ\n")
     
     asyncio.run(main())
+
 
 
 
