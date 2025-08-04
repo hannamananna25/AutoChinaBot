@@ -710,9 +710,9 @@ async def calculate_and_send_result(message: types.Message, state: FSMContext, d
             f"- Таможенное оформление: {format_number(CUSTOMS_CLEARANCE)} руб.\n\n"
             f"💵 <b>ИТОГО к оплате:</b> {format_number(total)} руб.\n\n"
             f"<a href='{SITE_URL}'>С уважением, Авто Заказ ДВ</a>\n\n"
-            f"<a href='{TELEGRAM_URL}'>📩 Заказать авто</a>\n"
-            f"<a href='{GUAZI_URL}'>🔍 Поиск авто на Guazi.com</a>"
-        )
+            f"<a href='{SITE_URL}'>autozakaz-dv.ru</a>\n"
+            f"<a href='{SITE_URL}'>Главная</a>"
+     )
         
         if is_electric:
             result += "\n\nℹ️ <i>Для электромобилей: пошлина 15%, акциз по мощности, НДС 20%</i>"
@@ -904,4 +904,5 @@ if __name__ == "__main__":
     print("⚡ ВСЕ СИСТЕМЫ ГОТОВЫ К РАБОТЕ\n")
     
     asyncio.run(main())
+
 
