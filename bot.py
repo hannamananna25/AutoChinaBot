@@ -685,7 +685,7 @@ async def calculate_and_send_result(message: types.Message, state: FSMContext, d
         
         if data['engine_type'] in ["🛢️ Бензиновый", "⛽ Дизельный"]:
             result += f"🔧 <b>Объем двигателя:</b> {format_engine_volume(engine_volume_cc)}\n"
-            result += f"⚡ <b>Мощность двигателя:</b> {int(round(data.get('engine_power', 0))} л.с.\n"
+            result += f"⚡ <b>Мощность двигателя:</b> {int(round(data.get('engine_power', 0)))} л.с.\n"
         else:
             result += f"⚡ <b>Мощность двигателя:</b> {data.get('engine_power', 0)} кВт ({engine_power_hp:.1f} л.с.)\n"
         
@@ -904,3 +904,4 @@ if __name__ == "__main__":
     print("⚡ ВСЕ СИСТЕМЫ ГОТОВЫ К РАБОТЕ\n")
     
     asyncio.run(main())
+
