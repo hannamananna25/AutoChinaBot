@@ -794,16 +794,14 @@ async def about_handler(message: types.Message):
             )
             return
         
-        await message.answer(
-            f"🤖 <b>AutoZakazDV Calculator Bot</b>\n\n"
-            f"Этот бот помогает рассчитать стоимость растаможки автомобилей из Китая.\n\n"
-            f"<a href='{SITE_URL}'>🌐 Сайт компании</a>\n"
-            f"<a href='{TELEGRAM_URL}'>📞 Наш Telegram</a>\n"
-            f"<a href='{GUAZI_URL}'>🚗 Поиск авто на Guazi.com</a>\n\n"
-            f"Для начала расчета нажмите START",
-            parse_mode="HTML",
-            reply_markup=main_menu()
-        )
+     await message.answer(
+    f"🤖 <b>AutoZakazDV Calculator Bot</b>\n\n"
+    f"Этот бот помогает рассчитать стоимость растаможки автомобилей из Китая.\n\n"
+    f"<a href='{SITE_URL}'>🌐 Наш сайт: autozakaz-dv.ru</a>\n\n"
+    f"Для начала расчета нажмите START",
+    parse_mode="HTML",
+    reply_markup=main_menu()
+)
     except Exception as e:
         logger.error(f"Ошибка в about_handler: {e}", exc_info=True)
         await message.answer("⚠️ Произошла ошибка. Пожалуйста, попробуйте позже.")
@@ -904,6 +902,7 @@ if __name__ == "__main__":
     print("⚡ ВСЕ СИСТЕМЫ ГОТОВЫ К РАБОТЕ\n")
     
     asyncio.run(main())
+
 
 
 
