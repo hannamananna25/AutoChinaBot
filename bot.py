@@ -709,9 +709,9 @@ async def calculate_and_send_result(message: types.Message, state: FSMContext, d
             f"- Доставка до Уссурийска: {format_number(DELIVERY_COST)} руб.\n"
             f"- Таможенное оформление: {format_number(CUSTOMS_CLEARANCE)} руб.\n\n"
             f"?? <b>ИТОГО к оплате:</b> {format_number(total)} руб.\n\n"
-            result += f"<a href='{SITE_URL}'>С уважением, Авто Заказ ДВ</a>\n\n"
-            result += f"<a href='{SITE_URL}'>autozakaz-dv.ru</a>\n"
-            result += f"<a href='{SITE_URL}'>Главная</a>"
+            f"<a href='{SITE_URL}'>С уважением, Авто Заказ ДВ</a>\n"
+            f"<a href='{SITE_URL}'>autozakaz-dv.ru</a>\n"
+            f"<a href='{SITE_URL}'>Главная</a>"
         )
         
         if is_electric:
@@ -732,14 +732,14 @@ async def calculate_and_send_result(message: types.Message, state: FSMContext, d
         except Exception as text_error:
             logger.error(f"Ошибка при отправке текста: {text_error}", exc_info=True)
         
+        # Определение переменной site_info перед использованием
+        site_info = (
+            "С уважением, Авто Заказ ДВ\n\n"
+            f"<a href='{SITE_URL}'>autozakaz-dv.ru</a> | "
+            f"<a href='{TELEGRAM_URL}'>Telegram</a>"
+        )
+        
         try:
-            site_info = (
-                "С уважением, Авто Заказ ДВ\n\n"
-                f"<a href='{TELEGRAM_URL}'>- Заказать авто</a>\n"
-                f"<a href='{SITE_URL}'>autozakaz-dv.ru</a>\n"
-                "Главная"
-            )
-            
             await message.answer_photo(
                 photo=SITE_IMAGE_URL,
                 caption=site_info,
@@ -859,7 +859,7 @@ async def start_webapp():
 async def main():
     dp.errors.register(global_error_handler)
     
-    # ДОБАВЛЕНО: Очистка вебхуков перед запуском long-polling
+    # Очистка вебхуков перед запуском
     try:
         logger.info("?? Очистка старых вебхуков...")
         await bot.delete_webhook()
