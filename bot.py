@@ -768,7 +768,10 @@ async def calculate_and_send_result(message: types.Message, state: FSMContext, d
         logger.exception(f"Критическая ошибка при расчете стоимости")
         logger.error(f"Данные расчета: {data}")
         await message.answer("⚠️ Произошла ошибка при расчете стоимости. Пожалуйста, попробуйте еще раз.")
-        await state.clear()
+        try:
+            await state.clear()
+        except:
+            pass
 
 @dp.message(lambda m: m.text == "📊 Курсы валют")
 async def show_rates_handler(message: types.Message):
@@ -916,6 +919,7 @@ if __name__ == "__main__":
     print("⚡ ВСЕ СИСТЕМЫ ГОТОВЫ К РАБОТЕ\n")
     
     asyncio.run(main())
+
 
 
 
