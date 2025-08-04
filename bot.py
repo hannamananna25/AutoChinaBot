@@ -89,8 +89,6 @@ print(f"✅ Токен успешно загружен")
 DELIVERY_COST = 220000
 CUSTOMS_CLEARANCE = 80000
 SITE_URL = "https://autozakaz-dv.ru/"
-TELEGRAM_URL = "https://t.me/autozakazdv"
-GUAZI_URL = "https://www.guazi.com"
 BASE_RECYCLING_FEE_INDIVIDUAL = 20000
 BASE_RECYCLING_FEE_LEGAL = 150000
 BASE_EXCISE_RATE = 61
@@ -918,6 +916,7 @@ if __name__ == "__main__":
     print("⚡ ВСЕ СИСТЕМЫ ГОТОВЫ К РАБОТЕ\n")
     
     asyncio.run(main())
+
 
 
 
