@@ -178,7 +178,7 @@ def engine_type_keyboard():
 def subscribe_keyboard():
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="📢 Подписаться на канал", url="https://t.me/auto_v_kitae")],
+            [InlineKeyboardButton(text="📢 Подписаться на канал", url="https://t.me/auto_zakaz_dv")],
             [InlineKeyboardButton(text="✅ Я подписался", callback_data="check_subscription")]
         ]
     )
@@ -904,5 +904,6 @@ if __name__ == "__main__":
     print("⚡ ВСЕ СИСТЕМЫ ГОТОВЫ К РАБОТЕ\n")
     
     asyncio.run(main())
+
 
 
