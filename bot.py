@@ -94,7 +94,7 @@ GUAZI_URL = "https://www.guazi.com"
 BASE_RECYCLING_FEE_INDIVIDUAL = 20000
 BASE_RECYCLING_FEE_LEGAL = 150000
 BASE_EXCISE_RATE = 61
-CHANNEL_ID = -1002265390233
+CHANNEL_ID = "@auto_zakaz_dv"
 
 # Константы для электромобилей
 ELECTRIC_DUTY_RATE = 0.15
@@ -178,15 +178,29 @@ def engine_type_keyboard():
 def subscribe_keyboard():
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="📢 Подписаться на канал", url="https://t.me/auto_zakaz_dv")],
-            [InlineKeyboardButton(text="✅ Я подписался", callback_data="check_subscription")]
+            [InlineKeyboardButton(
+                text="📢 Подписаться на канал", 
+                url="https://t.me/auto_zakaz_dv"  # Должно совпадать с CHANNEL_ID
+            )],
+            [InlineKeyboardButton(
+                text="✅ Я подписался", 
+                callback_data="check_subscription"
+            )]
         ]
     )
 
 # Проверка подписки на канал
 async def is_subscribed(user_id: int) -> bool:
     try:
-        member = await bot.get_chat_member(chat_id=CHANNEL_ID, user_id=user_id)
+        # Получаем информацию о чате по username
+        chat = await bot.get_chat(chat_id=CHANNEL_ID)
+        
+        # Проверяем статус подписки
+        member = await bot.get_chat_member(
+            chat_id=chat.id, 
+            user_id=user_id
+        )
+        
         return member.status in [
             ChatMemberStatus.MEMBER,
             ChatMemberStatus.ADMINISTRATOR,
@@ -904,5 +918,6 @@ if __name__ == "__main__":
     print("⚡ ВСЕ СИСТЕМЫ ГОТОВЫ К РАБОТЕ\n")
     
     asyncio.run(main())
+
 
 
