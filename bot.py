@@ -178,7 +178,7 @@ def subscribe_keyboard():
         inline_keyboard=[
             [InlineKeyboardButton(
                 text="📢 Подписаться на канал", 
-                url="https://t.me/auto_zakaz_dv"  # Должно совпадать с CHANNEL_ID
+                url="https://t.me/auto_zakaz_dv"
             )],
             [InlineKeyboardButton(
                 text="✅ Я подписался", 
@@ -733,39 +733,32 @@ async def calculate_and_send_result(message: types.Message, state: FSMContext, d
         elif not is_individual:
             result += "\n\nℹ️ <i>Для ДВС юридических лиц: учтены пошлина, акциз, НДС и утильсбор</i>"
         
-        # Попытка отправить текстовый результат
+        # Отправляем текстовый результат
         try:
             if len(result) > 4096:
                 parts = [result[i:i+4096] for i in range(0, len(result), 4096)]
                 for part in parts:
                     await message.answer(part, parse_mode="HTML")
-                await message.answer("Выберите действие:", reply_markup=main_menu())
             else:
-                await message.answer(result, parse_mode="HTML", reply_markup=main_menu())
+                await message.answer(result, parse_mode="HTML")
         except Exception as text_error:
             logger.error(f"Ошибка при отправке текста: {text_error}", exc_info=True)
         
-        # Попытка отправить фото
+        # Отправляем фото
         try:
-            site_info = "С уважением, Авто Заказ ДВ"
             await message.answer_photo(
                 photo=SITE_IMAGE_URL,
-                caption=site_info,
+                caption="AutoZakazDV",
                 parse_mode="HTML"
             )
         except Exception as photo_error:
             logger.error(f"Ошибка при отправке фото: {photo_error}", exc_info=True)
-            try:
-                await message.answer(site_info, parse_mode="HTML")
-            except Exception as alt_text_error:
-                logger.error(f"Ошибка при отправке альтернативного текста для фото: {alt_text_error}")
         
-        # Безопасная очистка состояния
-        try:
-            await state.clear()
-        except Exception as clear_error:
-            logger.error(f"Ошибка при очистке состояния: {clear_error}")
+        # Возвращаем основное меню
+        await message.answer("Выберите действие:", reply_markup=main_menu())
         
+        # Очищаем состояние
+        await state.clear()
         logger.info("Расчет успешно завершен и отправлен")
         
     except Exception as e:
@@ -816,9 +809,11 @@ async def about_handler(message: types.Message):
         await message.answer(
             f"🤖 <b>AutoZakazDV Calculator Bot</b>\n\n"
             f"Этот бот помогает рассчитать стоимость растаможки автомобилей из Китая.\n\n"
-            f"<a href='{SITE_URL}'>🌐 Сайт компании</a>\n"
-            f"<a href='{SITE_URL}'>📞 Наш Telegram</a>\n"
-            f"<a href='{SITE_URL}'>🚗 Поиск авто на Guazi.com</a>\n\n"
+            f"<b>Компания «Авто Заказ ДВ»</b>\n"
+            f"🌐 Сайт: {SITE_URL}\n"
+            f"📞 Телефон: +79841567357\n"
+            f"🚗 Заказать авто: @auto_zakaz_dv\n\n"
+            f"<a href='{SITE_URL}'>Подробнее на нашем сайте</a>\n\n"
             f"Для начала расчета нажмите START",
             parse_mode="HTML",
             reply_markup=main_menu()
