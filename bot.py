@@ -86,7 +86,7 @@ if not TOKEN:
 print(f"✅ Токен успешно загружен")
 
 # Константы
-DELIVERY_COST = 165000
+DELIVERY_COST = 220000
 CUSTOMS_CLEARANCE = 80000
 SITE_URL = "https://autozakaz-dv.ru/"
 TELEGRAM_URL = "https://t.me/autozakazdv"
@@ -902,6 +902,7 @@ if __name__ == "__main__":
     print("⚡ ВСЕ СИСТЕМЫ ГОТОВЫ К РАБОТЕ\n")
     
     asyncio.run(main())
+
 
 
 
