@@ -8,42 +8,42 @@ from datetime import datetime
 from xml.etree import ElementTree as ET
 
 print("=" * 60)
-print("?? СИСТЕМНАЯ ДИАГНОСТИКА ПРИ ЗАПУСКЕ")
+print("🚀 СИСТЕМНАЯ ДИАГНОСТИКА ПРИ ЗАПУСКЕ")
 
 # 1. Проверка версии Python
-print(f"\n?? Версия Python: {sys.version}")
-print(f"?? Рабочая директория: {os.getcwd()}")
+print(f"\n🐍 Версия Python: {sys.version}")
+print(f"📂 Рабочая директория: {os.getcwd()}")
 
 # 2. Проверка установки pip
 try:
     import pip
-    print(f"? pip установлен, версия: {pip.__version__}")
+    print(f"✅ pip установлен, версия: {pip.__version__}")
 except ImportError:
-    print("? pip не установлен! Попытка установки...")
+    print("❌ pip не установлен! Попытка установки...")
     subprocess.check_call([sys.executable, "-m", "ensurepip", "--default-pip"])
 
 # 3. Проверка requests
 try:
     import requests
-    print(f"? requests установлена, версия: {requests.__version__}")
+    print(f"✅ requests установлена, версия: {requests.__version__}")
 except ImportError:
-    print("? requests не установлена! Выполняю принудительную установку...")
+    print("❌ requests не установлена! Выполняю принудительную установку...")
     subprocess.check_call([sys.executable, "-m", "pip", "install", "requests==2.31.0"])
     import requests
-    print(f"? requests успешно установлена, версия: {requests.__version__}")
+    print(f"✅ requests успешно установлена, версия: {requests.__version__}")
 
 # 4. Проверка сети
-print("\n?? ТЕСТ СЕТЕВОГО ПОДКЛЮЧЕНИЯ:")
+print("\n🌐 ТЕСТ СЕТЕВОГО ПОДКЛЮЧЕНИЯ:")
 try:
     response = requests.get("https://httpbin.org/get", timeout=10)
     print(f"Статус: {response.status_code}")
     print(f"IP-адрес: {response.json().get('origin', 'неизвестен')}")
 except Exception as e:
-    print(f"? СЕТЕВАЯ ОШИБКА: {str(e)}")
+    print(f"❌ СЕТЕВАЯ ОШИБКА: {str(e)}")
     print("Проверьте подключение контейнера к интернету")
 
 print("=" * 60)
-print("? ЗАПУСК БОТА\n")
+print("⚡ ЗАПУСК БОТА\n")
 
 # Основные импорты
 from aiogram import Bot, Dispatcher, types
@@ -79,11 +79,11 @@ TOKEN = os.getenv("BOT_TOKEN")
 
 # Проверка токена
 if not TOKEN:
-    logger.error("? ОШИБКА: Токен бота не загружен!")
-    print("? ОШИБКА: Токен бота не загружен!")
+    logger.error("❌ ОШИБКА: Токен бота не загружен!")
+    print("❌ ОШИБКА: Токен бота не загружен!")
     exit(1)
 
-print(f"? Токен успешно загружен")
+print(f"✅ Токен успешно загружен")
 
 # Константы
 DELIVERY_COST = 220000
@@ -141,8 +141,8 @@ def start_keyboard():
 def main_menu():
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="?? Рассчитать стоимость авто")],
-            [KeyboardButton(text="?? Курсы валют"), KeyboardButton(text="?? О боте")]
+            [KeyboardButton(text="🚗 Рассчитать стоимость авто")],
+            [KeyboardButton(text="📊 Курсы валют"), KeyboardButton(text="ℹ️ О боте")]
         ],
         resize_keyboard=True
     )
@@ -150,8 +150,8 @@ def main_menu():
 def importer_type_keyboard():
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="?? Физическое лицо"), KeyboardButton(text="?? Юридическое лицо")],
-            [KeyboardButton(text="? Назад")]
+            [KeyboardButton(text="👤 Физическое лицо"), KeyboardButton(text="🏢 Юридическое лицо")],
+            [KeyboardButton(text="↩ Назад")]
         ],
         resize_keyboard=True
     )
@@ -159,8 +159,8 @@ def importer_type_keyboard():
 def personal_use_keyboard():
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="? Для личного пользования"), KeyboardButton(text="?? Для перепродажи")],
-            [KeyboardButton(text="? Назад")]
+            [KeyboardButton(text="✅ Для личного пользования"), KeyboardButton(text="💰 Для перепродажи")],
+            [KeyboardButton(text="↩ Назад")]
         ],
         resize_keyboard=True
     )
@@ -168,9 +168,9 @@ def personal_use_keyboard():
 def engine_type_keyboard():
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="??? Бензиновый"), KeyboardButton(text="? Дизельный")],
-            [KeyboardButton(text="?? Электрический")],
-            [KeyboardButton(text="? Назад")]
+            [KeyboardButton(text="🛢️ Бензиновый"), KeyboardButton(text="⛽ Дизельный")],
+            [KeyboardButton(text="🔋 Электрический")],
+            [KeyboardButton(text="↩ Назад")]
         ],
         resize_keyboard=True
     )
@@ -178,8 +178,8 @@ def engine_type_keyboard():
 def subscribe_keyboard():
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="?? Подписаться на канал", url="https://t.me/auto_zakaz_dv")],
-            [InlineKeyboardButton(text="? Я подписался", callback_data="check_subscription")]
+            [InlineKeyboardButton(text="📢 Подписаться на канал", url="https://t.me/auto_v_kitae")],
+            [InlineKeyboardButton(text="✅ Я подписался", callback_data="check_subscription")]
         ]
     )
 
@@ -245,7 +245,7 @@ def parse_engine_volume(input_str):
 
 def format_engine_volume(volume_cc):
     liters = volume_cc / 1000
-    return f"{volume_cc} см? ({liters:.1f} л)" if liters != int(liters) else f"{volume_cc} см? ({int(liters)} л)"
+    return f"{volume_cc} см³ ({liters:.1f} л)" if liters != int(liters) else f"{volume_cc} см³ ({int(liters)} л)"
 
 def format_number(value):
     return "{0:,}".format(int(value)).replace(",", ".")
@@ -362,14 +362,14 @@ async def start_handler(message: types.Message):
     try:
         if not await is_subscribed(message.from_user.id):
             await message.answer(
-                "?? Для использования бота необходимо подписаться на наш канал!\n"
-                "После подписки нажмите кнопку '? Я подписался'",
+                "📢 Для использования бота необходимо подписаться на наш канал!\n"
+                "После подписки нажмите кнопку '✅ Я подписался'",
                 reply_markup=subscribe_keyboard()
             )
             return
         
         await message.answer(
-            "?? <b>AutoZakazDV Calculator</b>\n\n"
+            "🚗 <b>AutoZakazDV Calculator</b>\n\n"
             "Добро пожаловать! Актуальные расчеты стоимости авто из Китая\n\n"
             "Нажмите START для начала работы",
             parse_mode="HTML",
@@ -377,7 +377,7 @@ async def start_handler(message: types.Message):
         )
     except Exception as e:
         logger.error(f"Ошибка в start_handler: {e}", exc_info=True)
-        await message.answer("?? Произошла ошибка. Пожалуйста, попробуйте позже.")
+        await message.answer("⚠️ Произошла ошибка. Пожалуйста, попробуйте позже.")
 
 @dp.callback_query(lambda c: c.data == "check_subscription")
 async def check_subscription_handler(callback_query: types.CallbackQuery):
@@ -385,13 +385,13 @@ async def check_subscription_handler(callback_query: types.CallbackQuery):
         if await is_subscribed(callback_query.from_user.id):
             await callback_query.message.delete()
             await callback_query.message.answer(
-                "? Спасибо за подписку! Теперь вы можете использовать бота.\n"
+                "✅ Спасибо за подписку! Теперь вы можете использовать бота.\n"
                 "Нажмите START для начала работы.",
                 reply_markup=start_keyboard()
             )
         else:
             await callback_query.answer(
-                "? Вы еще не подписались на канал! Пожалуйста, подпишитесь и повторите проверку.",
+                "❌ Вы еще не подписались на канал! Пожалуйста, подпишитесь и повторите проверку.",
                 show_alert=True
             )
     except Exception as e:
@@ -402,75 +402,75 @@ async def start_command_handler(message: types.Message):
     try:
         if not await is_subscribed(message.from_user.id):
             await message.answer(
-                "?? Для использования бота необходимо подписаться на наш канал!\n"
-                "После подписки нажмите кнопку '? Я подписался'",
+                "📢 Для использования бота необходимо подписаться на наш канал!\n"
+                "После подписки нажмите кнопку '✅ Я подписался'",
                 reply_markup=subscribe_keyboard()
             )
             return
         
         await message.answer(
-            "?? <b>AutoZakazDV Calculator</b>\n\n"
+            "🚗 <b>AutoZakazDV Calculator</b>\n\n"
             "Выберите действие:",
             parse_mode="HTML",
             reply_markup=main_menu()
         )
     except Exception as e:
         logger.error(f"Ошибка в start_command_handler: {e}", exc_info=True)
-        await message.answer("?? Произошла ошибка. Пожалуйста, попробуйте позже.")
+        await message.answer("⚠️ Произошла ошибка. Пожалуйста, попробуйте позже.")
 
 @dp.message(Command("calculate"))
-@dp.message(lambda m: m.text == "?? Рассчитать стоимость авто")
+@dp.message(lambda m: m.text == "🚗 Рассчитать стоимость авто")
 async def calculate_handler(message: types.Message, state: FSMContext):
     try:
         if not await is_subscribed(message.from_user.id):
             await message.answer(
-                "?? Для использования калькулятора необходимо подписаться на наш канал!\n"
-                "После подписки нажмите кнопку '? Я подписался'",
+                "📢 Для использования калькулятора необходимо подписаться на наш канал!\n"
+                "После подписки нажмите кнопку '✅ Я подписался'",
                 reply_markup=subscribe_keyboard()
             )
             return
         
         await state.set_state(Form.price)
         await message.answer(
-            "?? Введите стоимость автомобиля в CNY (например 150000):",
+            "💰 Введите стоимость автомобиля в CNY (например 150000):",
             reply_markup=ReplyKeyboardRemove()
         )
     except Exception as e:
         logger.error(f"Ошибка в calculate_handler: {e}", exc_info=True)
-        await message.answer("?? Произошла ошибка. Пожалуйста, попробуйте позже.")
+        await message.answer("⚠️ Произошла ошибка. Пожалуйста, попробуйте позже.")
 
 @dp.message(Form.price)
 async def price_handler(message: types.Message, state: FSMContext):
     try:
         if not await is_subscribed(message.from_user.id):
             await message.answer(
-                "?? Для продолжения расчета необходимо подписаться на наш канал!\n"
-                "После подписки нажмите кнопку '? Я подписался'",
+                "📢 Для продолжения расчета необходимо подписаться на наш канал!\n"
+                "После подписки нажмите кнопку '✅ Я подписался'",
                 reply_markup=subscribe_keyboard()
             )
             return
         
         price = float(message.text.replace(' ', '').replace(',', '.'))
         if price <= 0: 
-            await message.answer("? Ошибка! Стоимость должна быть положительным числом.")
+            await message.answer("❌ Ошибка! Стоимость должна быть положительным числом.")
             return
             
         await state.update_data(price=price)
         await state.set_state(Form.year_month)
-        await message.answer("?? Введите год и месяц выпуска (формат: ГГГГ.ММ, например: 2021.05):")
+        await message.answer("📅 Введите год и месяц выпуска (формат: ГГГГ.ММ, например: 2021.05):")
     except ValueError:
-        await message.answer("? Ошибка! Введите корректную сумму (например: 86000)")
+        await message.answer("❌ Ошибка! Введите корректную сумму (например: 86000)")
     except Exception as e:
         logger.error(f"Ошибка в price_handler: {e}", exc_info=True)
-        await message.answer("?? Произошла ошибка. Пожалуйста, начните расчет заново.")
+        await message.answer("⚠️ Произошла ошибка. Пожалуйста, начните расчет заново.")
 
 @dp.message(Form.year_month)
 async def year_month_handler(message: types.Message, state: FSMContext):
     try:
         if not await is_subscribed(message.from_user.id):
             await message.answer(
-                "?? Для продолжения расчета необходимо подписаться на наш канал!\n"
-                "После подписки нажмите кнопку '? Я подписался'",
+                "📢 Для продолжения расчета необходимо подписаться на наш канал!\n"
+                "После подписки нажмите кнопку '✅ Я подписался'",
                 reply_markup=subscribe_keyboard()
             )
             return
@@ -480,7 +480,7 @@ async def year_month_handler(message: types.Message, state: FSMContext):
         current_date = datetime.now()
         
         if not (1990 <= year <= current_date.year) or not (1 <= month <= 12):
-            await message.answer("? Ошибка! Некорректная дата выпуска.")
+            await message.answer("❌ Ошибка! Некорректная дата выпуска.")
             return
             
         manufacture_date = datetime(int(year), int(month), 1)
@@ -488,10 +488,10 @@ async def year_month_handler(message: types.Message, state: FSMContext):
         
         await state.update_data(year_month=(year, month), age_months=age_months)
         await state.set_state(Form.engine_type)
-        await message.answer("?? Выберите тип двигателя:", reply_markup=engine_type_keyboard())
+        await message.answer("🔧 Выберите тип двигателя:", reply_markup=engine_type_keyboard())
     except Exception as e:
         logger.error(f"Ошибка в year_month_handler: {e}", exc_info=True)
-        await message.answer("? Ошибка формата! Введите как ГГГГ.ММ (например: 2021.05)")
+        await message.answer("❌ Ошибка формата! Введите как ГГГГ.ММ (например: 2021.05)")
         await state.set_state(Form.year_month)
 
 @dp.message(Form.engine_type)
@@ -499,29 +499,29 @@ async def engine_type_handler(message: types.Message, state: FSMContext):
     try:
         if not await is_subscribed(message.from_user.id):
             await message.answer(
-                "?? Для продолжения расчета необходимо подписаться на наш канал!\n"
-                "После подписки нажмите кнопку '? Я подписался'",
+                "📢 Для продолжения расчета необходимо подписаться на наш канал!\n"
+                "После подписки нажмите кнопку '✅ Я подписался'",
                 reply_markup=subscribe_keyboard()
             )
             return
         
-        engine_types = ["??? Бензиновый", "? Дизельный", "?? Электрический"]
+        engine_types = ["🛢️ Бензиновый", "⛽ Дизельный", "🔋 Электрический"]
         if message.text not in engine_types:
-            await message.answer("? Пожалуйста, выберите тип двигателя из предложенных вариантов",
+            await message.answer("❌ Пожалуйста, выберите тип двигателя из предложенных вариантов",
                                reply_markup=engine_type_keyboard())
             return
         
         await state.update_data(engine_type=message.text)
         
-        if message.text in ["??? Бензиновый", "? Дизельный"]:
+        if message.text in ["🛢️ Бензиновый", "⛽ Дизельный"]:
             await state.set_state(Form.engine_volume)
-            await message.answer("?? Введите объем двигателя в кубических сантиметрах (например: 2000) или в литрах (например: 2.0):")
+            await message.answer("⚙️ Введите объем двигателя в кубических сантиметрах (например: 2000) или в литрах (например: 2.0):")
         else:
             await state.set_state(Form.engine_power)
-            await message.answer("? Введите мощность двигателя в кВт (например: 120):")
+            await message.answer("⚡ Введите мощность двигателя в кВт (например: 120):")
     except Exception as e:
         logger.error(f"Ошибка в engine_type_handler: {e}", exc_info=True)
-        await message.answer("?? Произошла ошибка. Пожалуйста, попробуйте еще раз.")
+        await message.answer("⚠️ Произошла ошибка. Пожалуйста, попробуйте еще раз.")
         await state.set_state(Form.engine_type)
 
 @dp.message(Form.engine_volume)
@@ -529,23 +529,23 @@ async def engine_volume_handler(message: types.Message, state: FSMContext):
     try:
         if not await is_subscribed(message.from_user.id):
             await message.answer(
-                "?? Для продолжения расчета необходимо подписаться на наш канал!\n"
-                "После подписки нажмите кнопку '? Я подписался'",
+                "📢 Для продолжения расчета необходимо подписаться на наш канал!\n"
+                "После подписки нажмите кнопку '✅ Я подписался'",
                 reply_markup=subscribe_keyboard()
             )
             return
         
         volume_cc = parse_engine_volume(message.text)
         if volume_cc is None or volume_cc <= 0:
-            await message.answer("? Ошибка! Введите объем цифрами (например: 1.6 или 1600)")
+            await message.answer("❌ Ошибка! Введите объем цифрами (например: 1.6 или 1600)")
             return
         
         await state.update_data(engine_volume_cc=volume_cc)
         await state.set_state(Form.engine_power)
-        await message.answer("?? Введите мощность двигателя в л.с. (например: 150):")
+        await message.answer("⚙️ Введите мощность двигателя в л.с. (например: 150):")
     except Exception as e:
         logger.error(f"Ошибка в engine_volume_handler: {e}", exc_info=True)
-        await message.answer("?? Произошла ошибка. Пожалуйста, введите объем снова.")
+        await message.answer("⚠️ Произошла ошибка. Пожалуйста, введите объем снова.")
         await state.set_state(Form.engine_volume)
 
 @dp.message(Form.engine_power)
@@ -553,27 +553,27 @@ async def engine_power_handler(message: types.Message, state: FSMContext):
     try:
         if not await is_subscribed(message.from_user.id):
             await message.answer(
-                "?? Для продолжения расчета необходимо подписаться на наш канал!\n"
-                "После подписки нажмите кнопку '? Я подписался'",
+                "📢 Для продолжения расчета необходимо подписаться на наш канал!\n"
+                "После подписки нажмите кнопку '✅ Я подписался'",
                 reply_markup=subscribe_keyboard()
             )
             return
         
         power = float(message.text)
         if power <= 0: 
-            await message.answer("? Ошибка! Мощность должна быть положительным числом.")
+            await message.answer("❌ Ошибка! Мощность должна быть положительным числом.")
             return
             
         await state.update_data(engine_power=power)
         await state.set_state(Form.importer_type)
-        await message.answer("?? Выберите тип импортера:", reply_markup=importer_type_keyboard())
+        await message.answer("👤 Выберите тип импортера:", reply_markup=importer_type_keyboard())
     except ValueError:
         data = await state.get_data()
-        unit = "кВт" if data.get('engine_type') == "?? Электрический" else "л.с."
-        await message.answer(f"? Ошибка! Введите мощность цифрами (например: 150) в {unit}")
+        unit = "кВт" if data.get('engine_type') == "🔋 Электрический" else "л.с."
+        await message.answer(f"❌ Ошибка! Введите мощность цифрами (например: 150) в {unit}")
     except Exception as e:
         logger.error(f"Ошибка в engine_power_handler: {e}", exc_info=True)
-        await message.answer("?? Произошла ошибка. Пожалуйста, введите мощность снова.")
+        await message.answer("⚠️ Произошла ошибка. Пожалуйста, введите мощность снова.")
         await state.set_state(Form.engine_power)
 
 @dp.message(Form.importer_type)
@@ -581,29 +581,29 @@ async def importer_type_handler(message: types.Message, state: FSMContext):
     try:
         if not await is_subscribed(message.from_user.id):
             await message.answer(
-                "?? Для продолжения расчета необходимо подписаться на наш канал!\n"
-                "После подписки нажмите кнопку '? Я подписался'",
+                "📢 Для продолжения расчета необходимо подписаться на наш канал!\n"
+                "После подписки нажмите кнопку '✅ Я подписался'",
                 reply_markup=subscribe_keyboard()
             )
             return
         
-        if message.text not in ["?? Физическое лицо", "?? Юридическое лицо"]:
-            await message.answer("? Пожалуйста, выберите тип из предложенных вариантов",
+        if message.text not in ["👤 Физическое лицо", "🏢 Юридическое лицо"]:
+            await message.answer("❌ Пожалуйста, выберите тип из предложенных вариантов",
                                reply_markup=importer_type_keyboard())
             return
         
-        is_individual = message.text == "?? Физическое лицо"
+        is_individual = message.text == "👤 Физическое лицо"
         await state.update_data(importer_type=is_individual)
         
         if is_individual:
             await state.set_state(Form.personal_use)
-            await message.answer("?? Выберите цель использования автомобиля:", reply_markup=personal_use_keyboard())
+            await message.answer("🎯 Выберите цель использования автомобиля:", reply_markup=personal_use_keyboard())
         else:
             data = await state.get_data()
             await calculate_and_send_result(message, state, data, is_individual, is_personal_use=False)
     except Exception as e:
         logger.error(f"Ошибка в importer_type_handler: {e}", exc_info=True)
-        await message.answer("?? Произошла ошибка. Пожалуйста, попробуйте еще раз.")
+        await message.answer("⚠️ Произошла ошибка. Пожалуйста, попробуйте еще раз.")
         await state.set_state(Form.importer_type)
 
 @dp.message(Form.personal_use)
@@ -611,23 +611,23 @@ async def personal_use_handler(message: types.Message, state: FSMContext):
     try:
         if not await is_subscribed(message.from_user.id):
             await message.answer(
-                "?? Для продолжения расчета необходимо подписаться на наш канал!\n"
-                "После подписки нажмите кнопку '? Я подписался'",
+                "📢 Для продолжения расчета необходимо подписаться на наш канал!\n"
+                "После подписки нажмите кнопку '✅ Я подписался'",
                 reply_markup=subscribe_keyboard()
             )
             return
         
-        if message.text not in ["? Для личного пользования", "?? Для перепродажи"]:
-            await message.answer("? Пожалуйста, выберите цель из предложенных вариантов",
+        if message.text not in ["✅ Для личного пользования", "💰 Для перепродажи"]:
+            await message.answer("❌ Пожалуйста, выберите цель из предложенных вариантов",
                                reply_markup=personal_use_keyboard())
             return
         
-        is_personal_use = message.text == "? Для личного пользования"
+        is_personal_use = message.text == "✅ Для личного пользования"
         data = await state.get_data()
         await calculate_and_send_result(message, state, data, is_individual=True, is_personal_use=is_personal_use)
     except Exception as e:
         logger.error(f"Ошибка в personal_use_handler: {e}", exc_info=True)
-        await message.answer("?? Произошла ошибка. Пожалуйста, попробуйте еще раз.")
+        await message.answer("⚠️ Произошла ошибка. Пожалуйста, попробуйте еще раз.")
         await state.set_state(Form.personal_use)
 
 async def calculate_and_send_result(message: types.Message, state: FSMContext, data: dict, is_individual: bool, is_personal_use: bool):
@@ -638,7 +638,7 @@ async def calculate_and_send_result(message: types.Message, state: FSMContext, d
         price_rub = data['price'] * rates['CNY']
         eur_rate = rates['EUR']
         
-        is_electric = data.get('engine_type') == "?? Электрический"
+        is_electric = data.get('engine_type') == "🔋 Электрический"
         engine_volume_cc = data.get('engine_volume_cc', 0) if not is_electric else 0
         
         if is_electric:
@@ -676,21 +676,21 @@ async def calculate_and_send_result(message: types.Message, state: FSMContext, d
             importer_type += f" ({purpose})"
         
         result = (
-            f"?? <b>Результат расчета</b> (актуально на {datetime.now().strftime('%d.%m.%Y')}):\n\n"
-            f"?? <b>Стоимость авто:</b> {format_number(data['price'])} CNY ({format_number(price_rub)} руб.)\n"
-            f"?? <b>Курсы:</b> CNY: {rates['CNY']:.2f} руб., EUR: {rates['EUR']:.2f} руб.\n"
-            f"? <b>Дата выпуска:</b> {data['year_month'][0]:.0f}.{data['year_month'][1]:.0f} ({age_str})\n"
-            f"?? <b>Тип двигателя:</b> {data['engine_type']}\n"
+            f"📊 <b>Результат расчета</b> (актуально на {datetime.now().strftime('%d.%m.%Y')}):\n\n"
+            f"💰 <b>Стоимость авто:</b> {format_number(data['price'])} CNY ({format_number(price_rub)} руб.)\n"
+            f"📈 <b>Курсы:</b> CNY: {rates['CNY']:.2f} руб., EUR: {rates['EUR']:.2f} руб.\n"
+            f"⏳ <b>Дата выпуска:</b> {data['year_month'][0]:.0f}.{data['year_month'][1]:.0f} ({age_str})\n"
+            f"🔋 <b>Тип двигателя:</b> {data['engine_type']}\n"
         )
         
-        if data['engine_type'] in ["??? Бензиновый", "? Дизельный"]:
-            result += f"?? <b>Объем двигателя:</b> {format_engine_volume(engine_volume_cc)}\n"
-            result += f"? <b>Мощность двигателя:</b> {int(round(data.get('engine_power', 0)))} л.с.\n"
+        if data['engine_type'] in ["🛢️ Бензиновый", "⛽ Дизельный"]:
+            result += f"🔧 <b>Объем двигателя:</b> {format_engine_volume(engine_volume_cc)}\n"
+            result += f"⚡ <b>Мощность двигателя:</b> {int(round(data.get('engine_power', 0)))} л.с.\n"
         else:
-            result += f"? <b>Мощность двигателя:</b> {data.get('engine_power', 0)} кВт ({engine_power_hp:.1f} л.с.)\n"
+            result += f"⚡ <b>Мощность двигателя:</b> {data.get('engine_power', 0)} кВт ({engine_power_hp:.1f} л.с.)\n"
         
-        result += f"?? <b>Импортер:</b> {importer_type}\n\n"
-        result += f"?? <b>Таможенные платежи:</b>\n"
+        result += f"👤 <b>Импортер:</b> {importer_type}\n\n"
+        result += f"📝 <b>Таможенные платежи:</b>\n"
         result += f"- Пошлина: {format_number(duty)} руб.\n"
         
         if excise > 0:
@@ -705,21 +705,21 @@ async def calculate_and_send_result(message: types.Message, state: FSMContext, d
         result += f"- Утильсбор: {format_number(recycling)} руб.\n"
         
         result += (
-            f"\n?? <b>Дополнительно:</b>\n"
+            f"\n🚚 <b>Дополнительно:</b>\n"
             f"- Доставка до Уссурийска: {format_number(DELIVERY_COST)} руб.\n"
             f"- Таможенное оформление: {format_number(CUSTOMS_CLEARANCE)} руб.\n\n"
-            f"?? <b>ИТОГО к оплате:</b> {format_number(total)} руб.\n\n"
-            f"<a href='{SITE_URL}'>С уважением, Авто Заказ ДВ</a>\n"
-            f"<a href='{SITE_URL}'>autozakaz-dv.ru</a>\n"
-            f"<a href='{SITE_URL}'>Главная</a>"
+            f"💵 <b>ИТОГО к оплате:</b> {format_number(total)} руб.\n\n"
+            f"<a href='{SITE_URL}'>С уважением, Авто Заказ ДВ</a>\n\n"
+            f"<a href='{TELEGRAM_URL}'>📩 Заказать авто</a>\n"
+            f"<a href='{GUAZI_URL}'>🔍 Поиск авто на Guazi.com</a>"
         )
         
         if is_electric:
-            result += "\n\n?? <i>Для электромобилей: пошлина 15%, акциз по мощности, НДС 20%</i>"
+            result += "\n\nℹ️ <i>Для электромобилей: пошлина 15%, акциз по мощности, НДС 20%</i>"
             if engine_power_hp <= 90:
                 result += " (акциз 0% для мощности до 90 л.с.)"
         elif not is_individual:
-            result += "\n\n?? <i>Для ДВС юридических лиц: учтены пошлина, акциз, НДС и утильсбор</i>"
+            result += "\n\nℹ️ <i>Для ДВС юридических лиц: учтены пошлина, акциз, НДС и утильсбор</i>"
         
         try:
             if len(result) > 4096:
@@ -732,14 +732,14 @@ async def calculate_and_send_result(message: types.Message, state: FSMContext, d
         except Exception as text_error:
             logger.error(f"Ошибка при отправке текста: {text_error}", exc_info=True)
         
-        # Определение переменной site_info перед использованием
-        site_info = (
-            "С уважением, Авто Заказ ДВ\n\n"
-            f"<a href='{SITE_URL}'>autozakaz-dv.ru</a> | "
-            f"<a href='{TELEGRAM_URL}'>Telegram</a>"
-        )
-        
         try:
+            site_info = (
+                "С уважением, Авто Заказ ДВ\n\n"
+                f"<a href='{TELEGRAM_URL}'>- Заказать авто</a>\n"
+                f"<a href='{SITE_URL}'>autozakaz-dv.ru</a>\n"
+                "Главная"
+            )
+            
             await message.answer_photo(
                 photo=SITE_IMAGE_URL,
                 caption=site_info,
@@ -755,58 +755,58 @@ async def calculate_and_send_result(message: types.Message, state: FSMContext, d
     except Exception as e:
         logger.exception(f"Критическая ошибка при расчете стоимости")
         logger.error(f"Данные расчета: {data}")
-        await message.answer("?? Произошла ошибка при расчете стоимости. Пожалуйста, попробуйте еще раз.")
+        await message.answer("⚠️ Произошла ошибка при расчете стоимости. Пожалуйста, попробуйте еще раз.")
         await state.clear()
 
-@dp.message(lambda m: m.text == "?? Курсы валют")
+@dp.message(lambda m: m.text == "📊 Курсы валют")
 async def show_rates_handler(message: types.Message):
     try:
         if not await is_subscribed(message.from_user.id):
             await message.answer(
-                "?? Для просмотра курсов валют необходимо подписаться на наш канал!\n"
-                "После подписки нажмите кнопку '? Я подписался'",
+                "📢 Для просмотра курсов валют необходимо подписаться на наш канал!\n"
+                "После подписки нажмите кнопку '✅ Я подписался'",
                 reply_markup=subscribe_keyboard()
             )
             return
         
         rates = get_currency_rates()
         await message.answer(
-            f"?? <b>Текущие курсы ЦБ РФ</b>:\n\n"
-            f"???? USD: {rates['USD']:.2f} руб.\n"
-            f"???? EUR: {rates['EUR']:.2f} руб.\n"
-            f"???? CNY: {rates['CNY']:.2f} руб.\n\n"
-            f"?? Обновлено: {datetime.now().strftime('%d.%m.%Y %H:%M')}",
+            f"📊 <b>Текущие курсы ЦБ РФ</b>:\n\n"
+            f"🇺🇸 USD: {rates['USD']:.2f} руб.\n"
+            f"🇪🇺 EUR: {rates['EUR']:.2f} руб.\n"
+            f"🇨🇳 CNY: {rates['CNY']:.2f} руб.\n\n"
+            f"🔄 Обновлено: {datetime.now().strftime('%d.%m.%Y %H:%M')}",
             parse_mode="HTML",
             reply_markup=main_menu()
         )
     except Exception as e:
         logger.error(f"Ошибка в show_rates_handler: {e}", exc_info=True)
-        await message.answer("?? Не удалось получить курсы валют. Пожалуйста, попробуйте позже.")
+        await message.answer("⚠️ Не удалось получить курсы валют. Пожалуйста, попробуйте позже.")
 
-@dp.message(lambda m: m.text == "?? О боте")
+@dp.message(lambda m: m.text == "ℹ️ О боте")
 async def about_handler(message: types.Message):
     try:
         if not await is_subscribed(message.from_user.id):
             await message.answer(
-                "?? Для просмотра информации о боте необходимо подписаться на наш канал!\n"
-                "После подписки нажмите кнопку '? Я подписался'",
+                "📢 Для просмотра информации о боте необходимо подписаться на наш канал!\n"
+                "После подписки нажмите кнопку '✅ Я подписался'",
                 reply_markup=subscribe_keyboard()
             )
             return
         
         await message.answer(
-            f"?? <b>AutoZakazDV Calculator Bot</b>\n\n"
+            f"🤖 <b>AutoZakazDV Calculator Bot</b>\n\n"
             f"Этот бот помогает рассчитать стоимость растаможки автомобилей из Китая.\n\n"
-            f"<a href='{SITE_URL}'>?? Сайт компании</a>\n"
-            f"<a href='{TELEGRAM_URL}'>?? Наш Telegram</a>\n"
-            f"<a href='{GUAZI_URL}'>?? Поиск авто на Guazi.com</a>\n\n"
+            f"<a href='{SITE_URL}'>🌐 Сайт компании</a>\n"
+            f"<a href='{TELEGRAM_URL}'>📞 Наш Telegram</a>\n"
+            f"<a href='{GUAZI_URL}'>🚗 Поиск авто на Guazi.com</a>\n\n"
             f"Для начала расчета нажмите START",
             parse_mode="HTML",
             reply_markup=main_menu()
         )
     except Exception as e:
         logger.error(f"Ошибка в about_handler: {e}", exc_info=True)
-        await message.answer("?? Произошла ошибка. Пожалуйста, попробуйте позже.")
+        await message.answer("⚠️ Произошла ошибка. Пожалуйста, попробуйте позже.")
 
 @dp.message(lambda m: m.text == "Очистить чат" or m.text == "/clean")
 async def clear_chat_handler(message: types.Message):
@@ -823,8 +823,8 @@ async def unknown_command_handler(message: types.Message):
     try:
         if not await is_subscribed(message.from_user.id):
             await message.answer(
-                "?? Для использования бота необходимо подписаться на наш канал!\n"
-                "После подписки нажмите кнопку '? Я подписался'",
+                "📢 Для использования бота необходимо подписаться на наш канал!\n"
+                "После подписки нажмите кнопку '✅ Я подписался'",
                 reply_markup=subscribe_keyboard()
             )
             return
@@ -859,25 +859,25 @@ async def start_webapp():
 async def main():
     dp.errors.register(global_error_handler)
     
-    # Очистка вебхуков перед запуском
+    # ДОБАВЛЕНО: Очистка вебхуков перед запуском long-polling
     try:
-        logger.info("?? Очистка старых вебхуков...")
+        logger.info("🔄 Очистка старых вебхуков...")
         await bot.delete_webhook()
-        logger.info("? Вебхуки успешно очищены")
+        logger.info("✅ Вебхуки успешно очищены")
     except Exception as e:
-        logger.error(f"? Ошибка при очистке вебхуков: {e}")
+        logger.error(f"❌ Ошибка при очистке вебхуков: {e}")
     
     try:
         await start_webapp()
-        logger.info("?? HTTP-сервер успешно запущен")
+        logger.info("🟢 HTTP-сервер успешно запущен")
     except Exception as e:
-        logger.error(f"?? Ошибка запуска HTTP-сервера: {e}")
+        logger.error(f"🔴 Ошибка запуска HTTP-сервера: {e}")
     
     try:
-        logger.info("?? Запуск бота...")
+        logger.info("🚀 Запуск бота...")
         await dp.start_polling(bot)
     except Exception as e:
-        logger.critical(f"?? КРИТИЧЕСКАЯ ОШИБКА: {e}")
+        logger.critical(f"💥 КРИТИЧЕСКАЯ ОШИБКА: {e}")
         logger.exception("Трассировка ошибки")
 
 if __name__ == "__main__":
@@ -888,19 +888,19 @@ if __name__ == "__main__":
     
     try:
         import requests
-        print(f"? requests: {requests.__version__}")
+        print(f"✅ requests: {requests.__version__}")
         
-        print("\n?? ПОСЛЕДНИЙ ТЕСТ СЕТИ:")
+        print("\n🔧 ПОСЛЕДНИЙ ТЕСТ СЕТИ:")
         r = requests.get("https://httpbin.org/get", timeout=10)
         print(f"HTTP-статус: {r.status_code}")
         print(f"IP-адрес: {r.json().get('origin', 'неизвестен')}")
         
     except Exception as e:
-        print(f"? ФАТАЛЬНАЯ ОШИБКА: {str(e)}")
+        print(f"❌ ФАТАЛЬНАЯ ОШИБКА: {str(e)}")
         import traceback
         traceback.print_exc()
     
     print("="*60)
-    print("? ВСЕ СИСТЕМЫ ГОТОВЫ К РАБОТЕ\n")
+    print("⚡ ВСЕ СИСТЕМЫ ГОТОВЫ К РАБОТЕ\n")
     
     asyncio.run(main())
