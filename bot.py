@@ -697,7 +697,7 @@ async def calculate_and_send_result(message: types.Message, state: FSMContext, d
         
         if data['engine_type'] in ["🛢️ Бензиновый", "⛽ Дизельный"]:
             result += f"🔧 <b>Объем двигателя:</b> {format_engine_volume(engine_volume_cc)}\n"
-            result += f"⚡ <b>Мощность двигателя:</b> {int(round(data.get('engine_power', 0)))} л.с.\n"
+            result += f"⚡ <b>Мощность двигателя:</b> {int(round(data.get('engine_power', 0))} л.с.\n"
         else:
             result += f"⚡ <b>Мощность двигателя:</b> {data.get('engine_power', 0)} кВт ({engine_power_hp:.1f} л.с.)\n"
         
@@ -724,7 +724,7 @@ async def calculate_and_send_result(message: types.Message, state: FSMContext, d
             f"<a href='{SITE_URL}'>С уважением, Авто Заказ ДВ</a>\n\n"
             f"<a href='{SITE_URL}'>autozakaz-dv.ru</a>\n"
             f"<a href='{SITE_URL}'>Главная</a>"
-     )
+        )
         
         if is_electric:
             result += "\n\nℹ️ <i>Для электромобилей: пошлина 15%, акциз по мощности, НДС 20%</i>"
@@ -733,6 +733,7 @@ async def calculate_and_send_result(message: types.Message, state: FSMContext, d
         elif not is_individual:
             result += "\n\nℹ️ <i>Для ДВС юридических лиц: учтены пошлина, акциз, НДС и утильсбор</i>"
         
+        # Попытка отправить текстовый результат
         try:
             if len(result) > 4096:
                 parts = [result[i:i+4096] for i in range(0, len(result), 4096)]
@@ -744,14 +745,9 @@ async def calculate_and_send_result(message: types.Message, state: FSMContext, d
         except Exception as text_error:
             logger.error(f"Ошибка при отправке текста: {text_error}", exc_info=True)
         
+        # Попытка отправить фото
         try:
-            site_info = (
-                "С уважением, Авто Заказ ДВ\n\n"
-                f"<a href='{TELEGRAM_URL}'>- Заказать авто</a>\n"
-                f"<a href='{SITE_URL}'>autozakaz-dv.ru</a>\n"
-                "Главная"
-            )
-            
+            site_info = "С уважением, Авто Заказ ДВ"
             await message.answer_photo(
                 photo=SITE_IMAGE_URL,
                 caption=site_info,
@@ -759,10 +755,18 @@ async def calculate_and_send_result(message: types.Message, state: FSMContext, d
             )
         except Exception as photo_error:
             logger.error(f"Ошибка при отправке фото: {photo_error}", exc_info=True)
-            await message.answer(site_info, parse_mode="HTML")
+            try:
+                await message.answer(site_info, parse_mode="HTML")
+            except Exception as alt_text_error:
+                logger.error(f"Ошибка при отправке альтернативного текста для фото: {alt_text_error}")
+        
+        # Безопасная очистка состояния
+        try:
+            await state.clear()
+        except Exception as clear_error:
+            logger.error(f"Ошибка при очистке состояния: {clear_error}")
         
         logger.info("Расчет успешно завершен и отправлен")
-        await state.clear()
         
     except Exception as e:
         logger.exception(f"Критическая ошибка при расчете стоимости")
@@ -813,8 +817,8 @@ async def about_handler(message: types.Message):
             f"🤖 <b>AutoZakazDV Calculator Bot</b>\n\n"
             f"Этот бот помогает рассчитать стоимость растаможки автомобилей из Китая.\n\n"
             f"<a href='{SITE_URL}'>🌐 Сайт компании</a>\n"
-            f"<a href='{TELEGRAM_URL}'>📞 Наш Telegram</a>\n"
-            f"<a href='{GUAZI_URL}'>🚗 Поиск авто на Guazi.com</a>\n\n"
+            f"<a href='{SITE_URL}'>📞 Наш Telegram</a>\n"
+            f"<a href='{SITE_URL}'>🚗 Поиск авто на Guazi.com</a>\n\n"
             f"Для начала расчета нажмите START",
             parse_mode="HTML",
             reply_markup=main_menu()
@@ -919,8 +923,3 @@ if __name__ == "__main__":
     print("⚡ ВСЕ СИСТЕМЫ ГОТОВЫ К РАБОТЕ\n")
     
     asyncio.run(main())
-
-
-
-
-
